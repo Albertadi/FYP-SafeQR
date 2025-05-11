@@ -1,80 +1,74 @@
 // app/(tabs)/index.tsx
-import { useIsFocused } from '@react-navigation/native';
-import { Camera, CameraView } from 'expo-camera';
-import React, { useEffect, useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 
-export default function ScannerScreen() {
-  const [hasPermission, setHasPermission] = useState<boolean|null>(null);
-  const [scanned, setScanned] = useState(false);
-  const isFocused = useIsFocused();
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, []);
-
-  const handleBarCodeScanned = ({ type, data }) => {
-    setScanned(true);
-    alert(`Scanned ${type}: ${data}`);
-  };
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      marginBottom: 20,
-    },
-    paragraph: {
-      fontSize: 16,
-      marginBottom: 100,
-    },
-    cameraContainer: {
-      width: '80%',
-      aspectRatio: 1,
-      overflow: 'hidden',
-      borderRadius: 10,
-      marginBottom: 40,
-    },
-    camera: {
-      flex: 1,
-    },
-    button: {
-      backgroundColor: 'blue',
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 5,
-    },
-    buttonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-  });
-  
-
-  if (hasPermission === null) return <Text>Requesting camera permission…</Text>;
-  if (hasPermission === false) return <Text>No access to camera</Text>;
+export default function HomeScreen() {
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
-      {isFocused && (
-        <CameraView
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={StyleSheet.absoluteFillObject}
-        />
-      )}
-      {scanned && (
-        <Button title="Tap to Scan Again" onPress={() => setScanned(false)} />
-      )}
+      <Text style={styles.title}>Welcome to SafeQR</Text>
+
+      <Image
+        source={require('@/assets/images/qr-illustration.png')} // Replace with your actual image
+        style={styles.image}
+        resizeMode="contain"
+      />
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => router.push('/scan')}
+      >
+        <Text style={styles.buttonText}>Scan QR Code</Text>
+      </TouchableOpacity>
+
+      <View style={styles.infoBox}>
+        <Text style={styles.infoText}>
+          Your QR codes are scanned safely and securely using our ML-powered backend.
+        </Text>
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  image: {
+    width: 240,
+    height: 240,
+    marginBottom: 30,
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    marginBottom: 30,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  infoBox: {
+    backgroundColor: '#E0E7FF',
+    padding: 16,
+    borderRadius: 10,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
+  },
+});
