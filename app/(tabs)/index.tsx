@@ -1,8 +1,11 @@
 // app/(tabs)/index.tsx
+import { recordScan } from '@/utils/api';
+import { supabase } from '@/utils/supabase';
 import { useIsFocused } from '@react-navigation/native';
 import { Camera, CameraView } from 'expo-camera';
 import React, { useEffect, useState } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
+
 
 export default function ScannerScreen() {
   const [hasPermission, setHasPermission] = useState<boolean|null>(null);
@@ -16,9 +19,39 @@ export default function ScannerScreen() {
     })();
   }, []);
 
-  const handleBarCodeScanned = ({ type, data }) => {
+  const handleBarCodeScanned =  async ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
     alert(`Scanned ${type}: ${data}`);
+
+    try {
+      // Get current session for authenticated user
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.user?.id) {
+        console.warn('No authenticated user, skipping recordScan');
+        return;
+      }
+
+      // Insert a new row into qr_scans
+      const payload = {
+        user_id: session.user.id,
+        decoded_content: data,
+        security_status: 'Safe',  // ← PLACEHOLDER SECURITY STATUS
+      };
+
+      try {
+        const inserted = await recordScan(payload);
+        console.log('Scan recorded:', inserted);
+      } catch (insertError) {
+        console.error('Failed to record scan:', insertError);
+      }
+
+    } catch (err) {
+      console.error('Error in handleBarCodeScanned:', err);
+    }
   };
 
   const styles = StyleSheet.create({
