@@ -1,16 +1,23 @@
 // app/(tabs)/index.tsx
 import { recordScan } from '@/utils/api';
 import { supabase } from '@/utils/supabase';
-import { useIsFocused } from '@react-navigation/native';
+import LandingOverlay from '@/components/LandingOverlay';
+
+import { useIsFocused, useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, CameraView } from 'expo-camera';
 import React, { useEffect, useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
-
+import { Button, StyleSheet, Text, BackHandler  } from 'react-native';
 
 export default function ScannerScreen() {
-  const [hasPermission, setHasPermission] = useState<boolean|null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
+  const [translucent, setTranslucent] = useState(false);
+  const [frameLayout, setFrameLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [torchEnabled, setTorchEnabled] = useState(false);
   const isFocused = useIsFocused();
+
 
   useEffect(() => {
     (async () => {
@@ -19,12 +26,36 @@ export default function ScannerScreen() {
     })();
   }, []);
 
-  const handleBarCodeScanned =  async ({ type, data }: { type: string; data: string }) => {
-    setScanned(true);
-    alert(`Scanned ${type}: ${data}`);
+  useEffect(() => {
+    if (!isFocused) setScanned(false);
+  }, [isFocused]);
 
-    try {
-      // Get current session for authenticated user
+  useFocusEffect(
+  React.useCallback(() => {
+    const onBackPress = () => {
+      if (showLanding && translucent) {
+        // Go back to opaque landing page
+        setTranslucent(false);
+        setTorchEnabled(false);
+        return true; // Prevent default behavior
+      }
+      return false; // Allow default back behavior (exit screen)
+    };
+
+    const backButton = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backButton.remove();
+  }, [showLanding, translucent])
+);
+
+  const toggleTorch = () => {
+    setTorchEnabled((prev) => !prev);
+  };
+
+  const handleQRScanned = async ({ type, data }: { type: string; data: string }) => {
+    alert(`Scanned ${type}: ${data}`); //placeholder
+    setScanned(true);
+
+    try {// Get current session for authenticated user
       const {
         data: { session },
         error: sessionError,
@@ -32,6 +63,7 @@ export default function ScannerScreen() {
 
       if (sessionError || !session?.user?.id) {
         console.warn('No authenticated user, skipping recordScan');
+        // store on local storage. (Will probably have to do an import history once user signs up)
         return;
       }
 
@@ -50,64 +82,69 @@ export default function ScannerScreen() {
       }
 
     } catch (err) {
-      console.error('Error in handleBarCodeScanned:', err);
+      console.error('Error in handleQRScanned:', err);
     }
   };
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      marginBottom: 20,
-    },
-    paragraph: {
-      fontSize: 16,
-      marginBottom: 100,
-    },
-    cameraContainer: {
-      width: '80%',
-      aspectRatio: 1,
-      overflow: 'hidden',
-      borderRadius: 10,
-      marginBottom: 40,
-    },
-    camera: {
-      flex: 1,
-    },
-    button: {
-      backgroundColor: 'blue',
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 5,
-    },
-    buttonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-  });
-  
 
   if (hasPermission === null) return <Text>Requesting camera permission…</Text>;
   if (hasPermission === false) return <Text>No access to camera</Text>;
 
+  //swap between opaque & translucent landing pages
+  const handleFrameLayoutChange = (layout: { x: number; y: number; width: number; height: number }) => {
+    setFrameLayout(layout)
+  };
+
+  //load opaque landing page first
+  if (showLanding && !translucent) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LandingOverlay
+          translucent={false}
+          onPressCamera={() => {
+            setTranslucent(true);
+            setShowLanding(true);
+          }}
+          onFrameLayoutChange={handleFrameLayoutChange} //Pass layout callback used for translucent layout
+        />
+      </SafeAreaView>
+    );
+  }
+
+  //load translucent layout & QR scanning function
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {isFocused && (
         <CameraView
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           style={StyleSheet.absoluteFillObject}
+          onBarcodeScanned={scanned ? undefined : handleQRScanned}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          enableTorch={torchEnabled ? true : false}
         />
       )}
-      {scanned && (
-        <Button title="Tap to Scan Again" onPress={() => setScanned(false)} />
+
+      {showLanding && translucent && (
+        <LandingOverlay
+          translucent={true}
+          frameLayout={frameLayout} // Pass measured frameLayout for cutout overlays
+          onPressCamera={() => {
+            setShowLanding(false);
+            setTranslucent(false);
+            setTorchEnabled(false);
+          }}
+          onToggleFlashlight={toggleTorch}
+        />
       )}
-    </View>
+
+      {scanned && !showLanding && (
+        <Button title="Tap to Scan Again" onPress={() => { setScanned(false); setShowLanding(true); setTranslucent(true); }} />
+      )}
+    </SafeAreaView>
   );
 }
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
