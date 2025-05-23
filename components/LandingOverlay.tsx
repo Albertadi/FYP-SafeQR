@@ -9,10 +9,12 @@ type Props = {
   onPressCamera: () => void;
   onFrameLayoutChange?: (layout: { x: number; y: number; width: number; height: number }) => void;
   onToggleFlashlight?: () => void;
+  torchEnabled?: boolean;
+  onPressGallery?: () => void;
 };
 
 export default function LandingOverlay({
-  translucent = false, frameLayout, onPressCamera, onFrameLayoutChange, onToggleFlashlight}: Props) {
+  translucent = false, frameLayout, onPressCamera, onFrameLayoutChange, onToggleFlashlight, torchEnabled = false, onPressGallery }: Props) {
   return (
     <View style={[styles.container, translucent ? styles.transparent : styles.opaque]}>
       {/* Cutout Mask if translucent */}
@@ -41,11 +43,11 @@ export default function LandingOverlay({
         onLayout={
           !translucent && onFrameLayoutChange
             ? (event: LayoutChangeEvent) => {
-                onFrameLayoutChange(event.nativeEvent.layout);
-              }
-            : undefined}/>
+              onFrameLayoutChange(event.nativeEvent.layout);
+            }
+            : undefined} />
 
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.cameraButton}
         onPress={translucent ? undefined : onPressCamera}>
         <Ionicons name="camera-outline" size={32} color="black" />
@@ -53,9 +55,9 @@ export default function LandingOverlay({
 
       <View style={styles.bottomIcons}>
         <TouchableOpacity style={styles.iconCircle} onPress={onToggleFlashlight}>
-          <Ionicons name="flashlight-outline" size={24} color="black" />
+          <Ionicons name={torchEnabled ? 'flashlight' : 'flashlight-outline'} size={24} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconCircle}>
+        <TouchableOpacity style={styles.iconCircle} onPress={onPressGallery}>
           <MaterialIcons name="photo-library" size={24} color="black" />
         </TouchableOpacity>
       </View>
