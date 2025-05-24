@@ -10,6 +10,7 @@ export default function SafeResultsScreen() {
       status="safe"
       url={url as string}
       onBack={() => router.replace('/')}
+      
     />
   );
 }
