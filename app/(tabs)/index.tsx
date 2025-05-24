@@ -22,7 +22,8 @@ export default function ScannerScreen() {
   const router = useRouter();
 
   /*----------------------------------------------------------------------------
-  Request permissions once when accessing application for the first time
+  Request permissions once when accessing application for the first time or when
+  permissions are revoked
   ------------------------------------------------------------------------------*/
   // Request camera permission
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function ScannerScreen() {
         setCameraPermission(status === 'granted');
       })();
     }
-  }, []);
+  }, [cameraPermission]); //re-run useEffect when camera permissions changes between [null, true, false]
 
   //Request gallery permission
   useEffect(() => {
@@ -42,21 +43,21 @@ export default function ScannerScreen() {
         setGalleryPermission(status === 'granted');
       })();
     }
-  }, []);
+  }, [galleryPermission]); //re-run useEffect when camera permissions changes between [null, true, false]
 
   // Redirect users to custom permission denied pages 
   if (cameraPermission === false) {
-    router.replace('/cameraPermissionDenied');
+    router.replace({pathname: '/permissionDenied', params: { type: "camera"}});
     return null; // Prevents current screen from rendering anything while user is granting permissions
   }
 
   if (galleryPermission === false) {
-    router.replace('/galleryPermissionDenied');
+    router.replace({pathname: '/permissionDenied', params: { type: "gallery"}});
     return null; // Prevents current screen from rendering anything while user is granting permissions
   }
 
   /*----------------------------------------------------------------------------
-  Resets scanned status to prevent scanner remaining disabled undeer these conditions:
+  Resets scanned status to prevent scanner from remaining disabled undeer these conditions:
   1) User navigates away from the screen and comes back
   2) Scanner loses focus during scanning
   ------------------------------------------------------------------------------*/
@@ -69,7 +70,7 @@ export default function ScannerScreen() {
   };
 
   /*----------------------------------------------------------------------------
-    Return to landing page functionality with Android back button. 
+    Return to landing page with Android back button. 
   ------------------------------------------------------------------------------*/
   useFocusEffect(
     React.useCallback(() => {
@@ -94,6 +95,30 @@ export default function ScannerScreen() {
   };
 
   /*----------------------------------------------------------------------------
+    Page Redirect after scanning QR from camera or gallery
+  ------------------------------------------------------------------------------*/
+  const redirectScans = ( result: { status?: string; url?: string } | undefined | null, source: 'camera' | 'gallery' = 'camera') => {
+  try{const status = result?.status?.toLowerCase?.();
+  const url = result?.url;
+
+  if (!url || !status) { 
+    alert('Scan failed or unverified. Please try again.'); //replace with custom alert
+    if (source === 'camera') setScanned(false);
+    return;
+  }
+
+  if (['safe', 'malicious', 'suspicious'].includes(status)) {
+    router.replace({ pathname: '/scanResult', params: { url, type: status } });
+  } else {
+    console.log('Unknown scan status encountered while redirecting scans: ${status}')
+    alert('Scan failed or unverified. Please try again.'); //replace with custom alert
+    if (source === 'camera') setScanned(false);
+  }}catch(err){
+    console.error('Redirect scan error:', err);
+    alert('An unexpected error occurred during redirection. Please try again.'); //replace with custom alert
+    if (source === 'camera') setScanned(false);
+  }};
+  /*----------------------------------------------------------------------------
     Index tab display
   ------------------------------------------------------------------------------*/
   //Variable to store layout dimensions and pass values to LandingOverlay so that app can swap between landing page and scanning page
@@ -115,13 +140,7 @@ export default function ScannerScreen() {
           onPressGallery={async () => { // Calls functions from scanner.ts to handle scans from gallery. After scan, prepare for next QR scan
             try {
               const result = await pickImageAndScan(handleQRScanned);
-              if (result?.status?.toLowerCase() === 'safe') {
-                router.replace({ pathname: '/safeResults', params: { url: result.url } });
-              } else if (result?.status === 'malicious' || result?.status === 'suspicious') {
-                router.replace({ pathname: '/maliciousResult', params: { url: result.url } });
-              } else {
-                alert('Scan failed or unverified. Please try again.'); //replace with custom alert
-              }
+              redirectScans(result, 'gallery');
             } catch (err) {
               console.error('Gallery scan error:', err);
               alert('An unexpected error occurred. Please try again.'); //replace with custom alert
@@ -145,15 +164,7 @@ export default function ScannerScreen() {
             setScanned(true); //Prevents camera from non-stop scanning while loading next screen
             try {
               const result = await handleQRScanned({ type, data });
-
-              if (result?.status.toLowerCase() === 'safe') {
-                router.replace({ pathname: '/safeResults', params: { url: result.url } });
-              } else if (result?.status === 'malicious' || result?.status === 'suspicious') {
-                router.replace({ pathname: '/maliciousResult', params: { url: result.url } });
-              } else {
-                alert('Scan failed or unverified. Please try again.'); //replace with custom alert
-                setScanned(false);
-              }
+              redirectScans(result, 'camera')
             } catch (err) {
               console.error('Live camera scan error:', err);
               alert('An unexpected error occurred. Please try again.'); //replace with custom alert
@@ -178,13 +189,7 @@ export default function ScannerScreen() {
           onPressGallery={async () => { // Calls functions from scanner.ts to handle scans from gallery. After scan, prepare for next QR scan
             try {
               const result = await pickImageAndScan(handleQRScanned);
-              if (result?.status?.toLowerCase() === 'safe') {
-                router.replace({ pathname: '/safeResults', params: { url: result.url } });
-              } else if (result?.status === 'malicious' || result?.status === 'suspicious') {
-                router.replace({ pathname: '/maliciousResult', params: { url: result.url } });
-              } else {
-                alert('Scan failed or unverified. Please try again.'); //replace with custom alert
-              }
+              redirectScans(result, 'gallery')
             } catch (err) {
               console.error('Gallery scan error:', err);
               alert('An unexpected error occurred. Please try again.'); //replace with custom alert

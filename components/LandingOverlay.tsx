@@ -1,7 +1,7 @@
 // components/LandingOverlay.tsx
-import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View, LayoutChangeEvent } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { Image, LayoutChangeEvent, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type Props = {
   translucent?: boolean;

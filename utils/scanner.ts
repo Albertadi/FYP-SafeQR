@@ -26,7 +26,9 @@ export async function handleQRScanned({ type, data }: { type: string; data: stri
         }
 
         // Placeholder. To be replaced with actual functions to check in the future
-        const securityStatus = 'Safe' // ← PLACEHOLDER SECURITY STATUS
+        //const securityStatus = 'Safe' // ← PLACEHOLDER SECURITY STATUS
+        //const securityStatus = 'Malicious' // ← PLACEHOLDER SECURITY STATUS
+        const securityStatus = 'Suspicious' // ← PLACEHOLDER SECURITY STATUS
 
         // Insert a new row into qr_scans
         const payload = {
