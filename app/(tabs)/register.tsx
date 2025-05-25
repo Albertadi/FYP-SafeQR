@@ -1,5 +1,6 @@
 // app/(tabs)/index.tsx
 import AuthScreen from '@/components/AuthScreen';
+import GetStarted from '@/components/GetStarted';
 import HomeScreen from '@/components/HomeScreen';
 import { supabase } from '@/utils/supabase';
 import React, { useEffect, useState } from 'react';
@@ -8,6 +9,7 @@ import { ActivityIndicator, View } from 'react-native';
 export default function IndexTab() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showAuth, setShowAuth] = useState(false)
 
   useEffect(() => {
     // 1) On mount load current session
@@ -32,7 +34,11 @@ export default function IndexTab() {
   }
 
   // 3) If no session → show login/register
-  if (!session) return <AuthScreen />;
+  if (!session && showAuth) {
+    return <AuthScreen onDone={() => setShowAuth(false)} />
+  } else if (!session) {
+    return <GetStarted onAuthPress={() => setShowAuth(true)} />
+  }
 
   // 4) If logged in → show home
   return <HomeScreen session={session} />;

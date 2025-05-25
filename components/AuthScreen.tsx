@@ -3,16 +3,16 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { register, signIn } from '@/utils/api';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Button,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Button,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-export default function AuthScreen() {
+export default function AuthScreen({ onDone }: { onDone(): void }) {
   const rawScheme = useColorScheme();
   const scheme    = rawScheme || 'light';
   const { background, text, tint } = Colors[scheme];
@@ -95,7 +95,9 @@ export default function AuthScreen() {
           disabled={loading}
         />
       </View>
+      <Button title="Back" onPress={onDone} />
     </View>
+
   );
 }
 
