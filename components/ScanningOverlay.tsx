@@ -1,4 +1,4 @@
-// components/LandingOverlay.tsx
+// components/ScanningOverlay.tsx
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, LayoutChangeEvent, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -13,7 +13,7 @@ type Props = {
   onPressGallery?: () => void;
 };
 
-export default function LandingOverlay({
+export default function ScanningOverlay({
   translucent = false, frameLayout, onPressCamera, onFrameLayoutChange, onToggleFlashlight, torchEnabled = false, onPressGallery }: Props) {
   return (
     <View style={[styles.container, translucent ? styles.transparent : styles.opaque]}>

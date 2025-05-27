@@ -1,4 +1,5 @@
 // app/(tabs)/index.tsx
+import ScanningOverlay from '@/components/ScanningOverlay';
 import { handleQRScanned, pickImageAndScan } from '@/utils/scanner';
 
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
@@ -127,7 +128,7 @@ export default function ScannerScreen() {
   if (showLanding && !translucent) {
     return (
       <SafeAreaView style={styles.container}>
-        <LandingOverlay
+        <ScanningOverlay
           translucent={false}
           onPressCamera={() => {
             setTranslucent(true);
@@ -173,7 +174,7 @@ export default function ScannerScreen() {
       )}
 
       {showLanding && translucent && ( //Loads a translucent overlay on top of live camera view. Used to ensure visibility for all other elements on screen.
-        <LandingOverlay
+        <ScanningOverlay
           translucent={true}
           frameLayout={frameLayout} // Pass measured frameLayout for live camera cutout
           torchEnabled={torchEnabled}
