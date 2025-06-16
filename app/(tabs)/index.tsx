@@ -1,4 +1,5 @@
 // app/(tabs)/index.tsx
+import ScanningOverlay from '@/components/ScanningOverlay';
 import { handleQRScanned, pickImageAndScan } from '@/utils/scanner';
 
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
@@ -24,29 +25,39 @@ export default function ScannerScreen() {
   Request permissions once when accessing application for the first time or when
   permissions are revoked
   ------------------------------------------------------------------------------*/
-  useEffect(() => {
-    if (cameraPermission === null) { // Request camera permission
-      (async () => {
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        setCameraPermission(status === 'granted');
-      })();
-    } else if (cameraPermission === false) { // Redirect users to custom permission denied pages
-      router.replace({ pathname: '/permissionDenied', params: { type: 'camera' } });
+  const checkCameraPermission = async () => {
+    try {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        router.replace({ pathname: '/permissionDenied', params: { type: 'camera' } }); // Redirect users to custom permission denied pages
+      }
+      setCameraPermission(status === 'granted');
+      return true;
+    } catch (err) {
+      console.error('Error requesting camera permission:', err);
+      alert('Unable to access the camera. Please try again.'); //replace with custom alert
+      return false;
     }
-  }, [cameraPermission]); //re-run useEffect when camera permissions changes between [null, true, false]
+  };
 
-  useEffect(() => {
-    if (galleryPermission === null) { //Request gallery permission
-      (async () => {
-        const { status } = await requestMediaLibraryPermissionsAsync();
-        setGalleryPermission(status === 'granted');
-      })();
-    } else if (galleryPermission === false) { // Redirect users to custom permission denied pages
-      router.replace({ pathname: '/permissionDenied', params: { type: 'gallery' } });
+  const checkGalleryPermission = async () => {
+    try {
+      const { status } = await requestMediaLibraryPermissionsAsync();
+
+      const granted = status === 'granted';
+      setGalleryPermission(granted);
+
+      if (!granted) {
+        router.replace({ pathname: '/permissionDenied', params: { type: 'gallery' } });
+      }
+
+      return granted;
+    } catch (err) {
+      console.error('Error requesting gallery permission:', err);
+      alert('Unable to access the photo library. Please try again.'); // replace with custom alert
+      return false;
     }
-  }, [galleryPermission]); //re-run useEffect when camera permissions changes between [null, true, false]
-
-
+  };
 
   /*----------------------------------------------------------------------------
   Resets scanned status to prevent scanner from remaining disabled undeer these conditions:
@@ -118,23 +129,29 @@ export default function ScannerScreen() {
   /*----------------------------------------------------------------------------
     Index tab display
   ------------------------------------------------------------------------------*/
-  //Variable to store layout dimensions and pass values to LandingOverlay so that app can swap between landing page and scanning page
+  // Variable to store layout dimensions and pass values to LandingOverlay so that app can swap between landing page and scanning page
   const handleFrameLayoutChange = (layout: { x: number; y: number; width: number; height: number }) => {
     setFrameLayout(layout)
   };
 
-  //Landing page is loaded only once and shown by default
+  // Landing page is loaded only once and shown by default
   if (showLanding && !translucent) {
     return (
       <SafeAreaView style={styles.container}>
-        <LandingOverlay
+        <ScanningOverlay
           translucent={false}
-          onPressCamera={() => {
+          onPressCamera={async () => {
+            const granted = await checkCameraPermission();
+            if (!granted) return;
+
             setTranslucent(true);
             setShowLanding(true);
           }}
           onFrameLayoutChange={handleFrameLayoutChange} // Pass layout dimensions used for translucent layout to LandingOverlay.tsx
           onPressGallery={async () => { // Calls functions from scanner.ts to handle scans from gallery. After scan, prepare for next QR scan
+            const granted = await checkGalleryPermission();
+            if (!granted) return;
+
             try {
               const result = await pickImageAndScan(handleQRScanned);
               redirectScans(result, 'gallery');
@@ -158,7 +175,7 @@ export default function ScannerScreen() {
         <CameraView
           style={StyleSheet.absoluteFillObject}
           onBarcodeScanned={scanned ? undefined : async ({ type, data }) => {
-            setScanned(true); //Prevents camera from non-stop scanning while loading next screen
+            setScanned(true); // Prevents camera from non-stop scanning while loading next screen
             try {
               const result = await handleQRScanned({ type, data });
               redirectScans(result, 'camera')
@@ -167,24 +184,29 @@ export default function ScannerScreen() {
               alert('An unexpected error occurred. Please try again.'); //replace with custom alert
             }
           }}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }} //Read only QR codes
-          enableTorch={torchEnabled ? true : false} //Adds torch function if user's environment is too dark
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }} // Read only QR codes
+          enableTorch={torchEnabled ? true : false} // Adds torch function if user's environment is too dark
         />
       )}
 
-      {showLanding && translucent && ( //Loads a translucent overlay on top of live camera view. Used to ensure visibility for all other elements on screen.
-        <LandingOverlay
+      {showLanding && translucent && ( // Loads a translucent overlay on top of live camera view. Used to ensure visibility for all other elements on screen.
+        <ScanningOverlay
           translucent={true}
           frameLayout={frameLayout} // Pass measured frameLayout for live camera cutout
           torchEnabled={torchEnabled}
-          onPressCamera={() => { // Resets everything to default values
+          onPressCamera={async () => { // Resets everything to default values
+            const granted = await checkCameraPermission();
+            if (!granted) return;
+
             setShowLanding(false);
             setTranslucent(false);
             setTorchEnabled(false);
           }}
-          onToggleFlashlight={toggleTorch} //Toggles torch added in camera view
+          onToggleFlashlight={toggleTorch} // Toggles torch added in camera view
           onPressGallery={async () => { // Calls functions from scanner.ts to handle scans from gallery. After scan, prepare for next QR scan
-            try {
+            const granted = await checkGalleryPermission();
+            if (!granted) return; try {
+
               const result = await pickImageAndScan(handleQRScanned);
               redirectScans(result, 'gallery')
             } catch (err) {
