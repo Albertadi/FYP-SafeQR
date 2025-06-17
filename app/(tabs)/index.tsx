@@ -1,9 +1,7 @@
 "use client"
 
+import GetStarted from "@/components/GetStarted"
 import ScanningOverlay from "@/components/ScanningOverlay"
-import { IconSymbol } from "@/components/ui/IconSymbol"
-import { Colors } from "@/constants/Colors"
-import { useColorScheme } from "@/hooks/useColorScheme"
 import { handleQRScanned, pickImageAndScan } from "@/utils/scanner"
 import { supabase } from "@/utils/supabase"
 
@@ -12,7 +10,7 @@ import { Camera, CameraView } from "expo-camera"
 import { requestMediaLibraryPermissionsAsync } from "expo-image-picker"
 import { useRouter } from "expo-router"
 import React, { useEffect, useState } from "react"
-import { BackHandler, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { BackHandler, Modal, StyleSheet } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function ScannerScreen() {
@@ -31,9 +29,6 @@ export default function ScannerScreen() {
 
   const isFocused = useIsFocused()
   const router = useRouter()
-  const rawScheme = useColorScheme()
-  const scheme = rawScheme || "light"
-  const colors = Colors[scheme]
 
   // Check authentication state on mount
   useEffect(() => {
@@ -169,11 +164,6 @@ export default function ScannerScreen() {
   /*----------------------------------------------------------------------------
     GetStarted Modal Handlers
   ------------------------------------------------------------------------------*/
-  const handleLoginPress = () => {
-    setShowGetStartedModal(false)
-    router.push("/(tabs)/register")
-  }
-
   const handleProceedAsGuest = () => {
     setShowGetStartedModal(false)
   }
@@ -221,57 +211,7 @@ export default function ScannerScreen() {
 
         {/* Get Started Modal */}
         <Modal visible={showGetStartedModal} animationType="slide" presentationStyle="pageSheet">
-          <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <View style={{ flex: 1, paddingHorizontal: 32, justifyContent: "space-between", paddingVertical: 40 }}>
-              {/* Logo/Icon Section */}
-              <View style={{ alignItems: "center", marginTop: 60 }}>
-                <IconSymbol name="qrcode.viewfinder" size={80} color={colors.tint} />
-                <Text style={{ fontSize: 32, fontWeight: "bold", marginTop: 20, marginBottom: 8, color: colors.text }}>
-                  QR Scanner
-                </Text>
-                <Text style={{ fontSize: 16, textAlign: "center", lineHeight: 24, color: colors.secondaryText }}>
-                  Scan QR codes safely and securely
-                </Text>
-              </View>
-
-              {/* Features Section */}
-              <View style={{ gap: 20 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-                  <IconSymbol name="shield.checkered" size={24} color={colors.tint} />
-                  <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>Security scanning</Text>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-                  <IconSymbol name="clock.fill" size={24} color={colors.tint} />
-                  <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>Scan history</Text>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-                  <IconSymbol name="link" size={24} color={colors.tint} />
-                  <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>Link management</Text>
-                </View>
-              </View>
-
-              {/* Buttons Section */}
-              <View style={{ gap: 16 }}>
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: colors.tint,
-                    paddingVertical: 16,
-                    borderRadius: 8,
-                    alignItems: "center",
-                  }}
-                  onPress={handleLoginPress}
-                >
-                  <Text style={{ fontSize: 16, fontWeight: "600", color: colors.background }}>
-                    Login / Create Account
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={{ paddingVertical: 16, alignItems: "center" }} onPress={handleProceedAsGuest}>
-                  <Text style={{ fontSize: 16, fontWeight: "500", color: colors.tint }}>Proceed as Guest</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </SafeAreaView>
+          <GetStarted onProceedAsGuest={handleProceedAsGuest} />
         </Modal>
       </>
     )
@@ -339,57 +279,7 @@ export default function ScannerScreen() {
 
       {/* Get Started Modal */}
       <Modal visible={showGetStartedModal} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-          <View style={{ flex: 1, paddingHorizontal: 32, justifyContent: "space-between", paddingVertical: 40 }}>
-            {/* Logo/Icon Section */}
-            <View style={{ alignItems: "center", marginTop: 60 }}>
-              <IconSymbol name="qrcode.viewfinder" size={80} color={colors.tint} />
-              <Text style={{ fontSize: 32, fontWeight: "bold", marginTop: 20, marginBottom: 8, color: colors.text }}>
-                QR Scanner
-              </Text>
-              <Text style={{ fontSize: 16, textAlign: "center", lineHeight: 24, color: colors.secondaryText }}>
-                Scan QR codes safely and securely
-              </Text>
-            </View>
-
-            {/* Features Section */}
-            <View style={{ gap: 20 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-                <IconSymbol name="shield.checkered" size={24} color={colors.tint} />
-                <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>Security scanning</Text>
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-                <IconSymbol name="clock.fill" size={24} color={colors.tint} />
-                <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>Scan history</Text>
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-                <IconSymbol name="link" size={24} color={colors.tint} />
-                <Text style={{ fontSize: 16, fontWeight: "500", color: colors.text }}>Link management</Text>
-              </View>
-            </View>
-
-            {/* Buttons Section */}
-            <View style={{ gap: 16 }}>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: colors.tint,
-                  paddingVertical: 16,
-                  borderRadius: 8,
-                  alignItems: "center",
-                }}
-                onPress={handleLoginPress}
-              >
-                <Text style={{ fontSize: 16, fontWeight: "600", color: colors.background }}>
-                  Login / Create Account
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={{ paddingVertical: 16, alignItems: "center" }} onPress={handleProceedAsGuest}>
-                <Text style={{ fontSize: 16, fontWeight: "500", color: colors.tint }}>Proceed as Guest</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
+        <GetStarted onProceedAsGuest={handleProceedAsGuest} />
       </Modal>
     </>
   )

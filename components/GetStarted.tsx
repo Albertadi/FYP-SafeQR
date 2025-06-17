@@ -1,138 +1,157 @@
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
-} from 'react-native';
+"use client"
 
-export default function GetStarted({ onAuthPress }: { onAuthPress(): void }) {
-    const rawScheme = useColorScheme();
-  const scheme = rawScheme || 'light';
-  const { background, text, tint } = Colors[scheme];
-  const router = useRouter();
+import { IconSymbol } from "@/components/ui/IconSymbol"
+import { Colors } from "@/constants/Colors"
+import { useColorScheme } from "@/hooks/useColorScheme"
+import { router } from "expo-router"
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
+
+interface GetStartedProps {
+  onProceedAsGuest: () => void
+}
+
+export default function GetStarted({ onProceedAsGuest }: GetStartedProps) {
+  const insets = useSafeAreaInsets()
+  const rawScheme = useColorScheme()
+  const scheme = rawScheme || "light"
+  const colors = Colors[scheme]
+
+  const handleLoginPress = () => {
+    // Navigate to register tab which handles auth
+    router.push("/(tabs)/register")
+  }
+
+  // Background decorative icons data
+  const backgroundIcons = [
+    { name: "shield.checkered", top: 80, left: 30, size: 20 },
+    { name: "qrcode.viewfinder", top: 120, right: 40, size: 18 },
+    { name: "link", top: 160, left: 50, size: 16 },
+    { name: "shield.checkered", top: 200, right: 60, size: 22 },
+    { name: "qrcode.viewfinder", top: 240, left: 20, size: 19 },
+    { name: "link", top: 280, right: 30, size: 17 },
+    { name: "shield.checkered", top: 320, left: 70, size: 21 },
+    { name: "qrcode.viewfinder", top: 360, right: 50, size: 18 },
+    { name: "link", top: 400, left: 40, size: 16 },
+    { name: "shield.checkered", top: 440, right: 70, size: 20 },
+    { name: "qrcode.viewfinder", top: 480, left: 60, size: 19 },
+    { name: "link", top: 520, right: 40, size: 17 },
+  ]
 
   return (
-    <View style={[styles.container, { backgroundColor: background }]}>
-      <View style={styles.background}>
-        {/* Logo Placeholder */}
-        <View style={[styles.logoContainer, { backgroundColor: background }]}>
-          <View style={styles.logoPlaceholder}>
-            <Text style={{ color: text }}>Logo</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      {/* Background decorative icons */}
+      {backgroundIcons.map((icon, index) => (
+        <View
+          key={index}
+          style={[
+            styles.backgroundIcon,
+            {
+              top: icon.top,
+              left: icon.left,
+              right: icon.right,
+            },
+          ]}
+        >
+          <IconSymbol name={icon.name as any} size={icon.size} color={colors.placeholderText} />
+        </View>
+      ))}
+
+      <View style={styles.content}>
+        {/* Logo Section */}
+        <View style={styles.logoSection}>
+          <View style={[styles.logoPlaceholder, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[styles.logoText, { color: colors.secondaryText }]}>Our logo</Text>
           </View>
         </View>
 
-        {/* Headline and Tagline */}
-        <Text style={[styles.headline, { color: text }]}>Get Started</Text>
-        <Text style={[styles.tagline, { color: text }]}>
-          Scan smart. Stay safe. We've got your back.
-        </Text>
+        {/* Content Section */}
+        <View style={styles.textSection}>
+          <Text style={[styles.title, { color: colors.text }]}>Get Started</Text>
+          <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+            Scan smart. Stay safe. We've got your back.
+          </Text>
+        </View>
 
-        {/* Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: tint }]}
-            onPress={() => {
-              // Placeholder for guest functionality
-              console.log('Continue as guest');
-            }}
-          >
-            <Text style={styles.primaryButtonText}>Proceed as Guest</Text>
+        {/* Buttons Section */}
+        <View style={styles.buttonsSection}>
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: "#000" }]} onPress={onProceedAsGuest}>
+            <Text style={[styles.primaryButtonText, { color: "#fff" }]}>Proceed as Guest</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={onAuthPress}
-          >
-            <Text  style={[styles.secondaryButtonText, { color: tint }]}>
-              Login / Create an account
-            </Text>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleLoginPress}>
+            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Login/Create an account</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </View>
-  );
+    </SafeAreaView>
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: "relative",
   },
-  background: {
+  backgroundIcon: {
+    position: "absolute",
+    opacity: 0.3,
+  },
+  content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 32,
+    justifyContent: "space-between",
+    paddingVertical: 40,
+    zIndex: 1,
   },
-  logoContainer: {
-    width: 150,
-    height: 150,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  logoSection: {
+    alignItems: "center",
+    marginTop: 100,
   },
   logoPlaceholder: {
-    width: '80%',
-    height: '80%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderRadius: 10,
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  headline: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  tagline: {
+  logoText: {
     fontSize: 16,
-    opacity: 0.8,
-    marginBottom: 48,
-    textAlign: 'center',
+    fontWeight: "500",
   },
-  buttonContainer: {
-    width: '100%',
-    alignItems: 'center',
+  textSection: {
+    alignItems: "center",
+    marginTop: -50,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  buttonsSection: {
+    gap: 16,
+    marginBottom: 40,
   },
   primaryButton: {
-    width: '100%',
     paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 8,
+    alignItems: "center",
   },
   primaryButtonText: {
-    color: '#000000',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   secondaryButton: {
-    paddingVertical: 12,
+    paddingVertical: 16,
+    alignItems: "center",
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "400",
   },
-}); 
+})

@@ -28,7 +28,7 @@ export default function GetStartedScreen({ onProceedAsGuest }: GetStartedProps) 
         {/* Logo/Icon Section */}
         <View style={styles.logoSection}>
           <IconSymbol name="qrcode.viewfinder" size={80} color={colors.tint} />
-          <Text style={[styles.appTitle, { color: colors.text }]}>QR Scanner</Text>
+          <Text style={[styles.appTitle, { color: colors.text }]}>SafeQR Scanner</Text>
           <Text style={[styles.appSubtitle, { color: colors.secondaryText }]}>Scan QR codes safely and securely</Text>
         </View>
 
@@ -44,7 +44,7 @@ export default function GetStartedScreen({ onProceedAsGuest }: GetStartedProps) 
           </View>
           <View style={styles.feature}>
             <IconSymbol name="link" size={24} color={colors.tint} />
-            <Text style={[styles.featureText, { color: colors.text }]}>Link management</Text>
+            <Text style={[styles.featureText, { color: colors.text }]}>Safe Preview</Text>
           </View>
         </View>
 
