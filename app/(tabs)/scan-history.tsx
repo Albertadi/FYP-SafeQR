@@ -5,6 +5,7 @@ import { Colors } from "@/constants/Colors"
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { getScanHistory, type QRScan } from "@/utils/api"
 import { supabase } from "@/utils/supabase"
+import { router } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
@@ -113,8 +114,7 @@ export default function ScanHistoryScreen() {
           <TouchableOpacity
             style={[styles.loginButton, { backgroundColor: colors.tint }]}
             onPress={() => {
-              // Navigate to register/login tab
-              // This assumes you're using expo-router navigation
+              router.push("/(tabs)/register")
             }}
           >
             <Text style={[styles.loginButtonText, { color: colors.background }]}>Go to Login</Text>

@@ -1,119 +1,353 @@
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { register, signIn } from '@/utils/api';
-import React, { useState } from 'react';
-import {
-  Alert,
-  Button,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+"use client"
 
-export default function AuthScreen({ onDone }: { onDone(): void }) {
-  const rawScheme = useColorScheme();
-  const scheme    = rawScheme || 'light';
-  const { background, text, tint } = Colors[scheme];
+import { IconSymbol } from "@/components/ui/IconSymbol"
+import { Colors } from "@/constants/Colors"
+import { useColorScheme } from "@/hooks/useColorScheme"
+import { supabase } from "@/utils/supabase"
+import { useState } from "react"
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
-  const [mode, setMode]       = useState<'login'|'register'>('login');
-  const [email, setEmail]     = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading]   = useState(false);
+interface AuthScreenProps {
+  onDone: () => void
+}
 
-  const handle = async () => {
-    setLoading(true);
-    try {
-      if (mode === 'login') {
-        await signIn(email, password);
-      } else {
-        await register(email, password, username);
-      }
-    } catch (err: any) {
-      Alert.alert('Error', err.message);
-    } finally {
-      setLoading(false);
+type AuthMode = "login" | "signup" | "forgot" | "emailSent"
+
+export default function AuthScreen({ onDone }: AuthScreenProps) {
+  const insets = useSafeAreaInsets()
+  const rawScheme = useColorScheme()
+  const scheme = rawScheme || "light"
+  const colors = Colors[scheme]
+
+  const [mode, setMode] = useState<AuthMode>("login")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please fill in all fields")
+      return
     }
-  };
+
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      Alert.alert("Login Error", error.message)
+    } else {
+      onDone()
+    }
+    setLoading(false)
+  }
+
+  const handleSignUp = async () => {
+    if (!email || !password || !confirmPassword || !fullName) {
+      Alert.alert("Error", "Please fill in all fields")
+      return
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match")
+      return
+    }
+
+    setLoading(true)
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        },
+      },
+    })
+
+    if (error) {
+      Alert.alert("Sign Up Error", error.message)
+    } else {
+      Alert.alert("Success", "Please check your email to verify your account")
+      onDone()
+    }
+    setLoading(false)
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert("Error", "Please enter your email address")
+      return
+    }
+
+    setLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+
+    if (error) {
+      Alert.alert("Error", error.message)
+    } else {
+      setMode("emailSent")
+    }
+    setLoading(false)
+  }
+
+  const renderLoginScreen = () => (
+    <View style={styles.content}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>Welcome Back!</Text>
+        <Text style={[styles.subtitle, { color: colors.secondaryText }]}>We're glad to see you again</Text>
+      </View>
+
+      <View style={styles.form}>
+        <TextInput
+          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+          placeholder="Username"
+          placeholderTextColor={colors.placeholderText}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        <TextInput
+          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+          placeholder="Password"
+          placeholderTextColor={colors.placeholderText}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        <TouchableOpacity onPress={() => setMode("forgot")}>
+          <Text style={[styles.forgotLink, { color: colors.secondaryText }]}>Forgot password?</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.primaryButton, { backgroundColor: "#000" }]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>{loading ? "Loading..." : "Login"}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setMode("signup")}>
+          <Text style={[styles.linkText, { color: colors.secondaryText }]}>
+            Don't have an account? <Text style={{ color: colors.text, fontWeight: "600" }}>Sign up</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+
+  const renderSignUpScreen = () => (
+    <View style={styles.content}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+      </View>
+
+      <View style={styles.form}>
+        <TextInput
+          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+          placeholder="Full Name"
+          placeholderTextColor={colors.placeholderText}
+          value={fullName}
+          onChangeText={setFullName}
+        />
+
+        <TextInput
+          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+          placeholder="Email Address"
+          placeholderTextColor={colors.placeholderText}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        <TextInput
+          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+          placeholder="Password"
+          placeholderTextColor={colors.placeholderText}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        <TextInput
+          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+          placeholder="Confirm Password"
+          placeholderTextColor={colors.placeholderText}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+        />
+
+        <TouchableOpacity
+          style={[styles.primaryButton, { backgroundColor: "#000" }]}
+          onPress={handleSignUp}
+          disabled={loading}
+        >
+          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>{loading ? "Loading..." : "Login"}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setMode("login")}>
+          <Text style={[styles.linkText, { color: colors.secondaryText }]}>
+            Already have an account? <Text style={{ color: colors.text, fontWeight: "600" }}>Login Now</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+
+  const renderForgotScreen = () => (
+    <View style={styles.content}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>Forget Password?</Text>
+        <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+          Please enter your email address below to receive a new password.
+        </Text>
+      </View>
+
+      <View style={styles.form}>
+        <TextInput
+          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+          placeholder="Email"
+          placeholderTextColor={colors.placeholderText}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        <TouchableOpacity
+          style={[styles.primaryButton, { backgroundColor: "#000" }]}
+          onPress={handleForgotPassword}
+          disabled={loading}
+        >
+          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>{loading ? "Loading..." : "Login"}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setMode("login")} style={styles.backButton}>
+          <IconSymbol name="chevron.left" size={16} color={colors.secondaryText} />
+          <Text style={[styles.backText, { color: colors.secondaryText }]}>Back to log in</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+
+  const renderEmailSentScreen = () => (
+    <View style={styles.content}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>Email has been sent!</Text>
+        <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+          Please check your inbox and you will see your new password.
+        </Text>
+      </View>
+
+      <View style={styles.emailIconContainer}>
+        <View style={[styles.emailIcon, { backgroundColor: "#007AFF" }]}>
+          <IconSymbol name="envelope.fill" size={40} color="#fff" />
+        </View>
+      </View>
+
+      <View style={styles.form}>
+        <TouchableOpacity style={[styles.primaryButton, { backgroundColor: "#000" }]} onPress={() => setMode("login")}>
+          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>Login</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={handleForgotPassword}>
+          <Text style={[styles.linkText, { color: colors.secondaryText }]}>
+            Didn't receive the link? <Text style={{ color: colors.text, fontWeight: "600" }}>Resend</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
 
   return (
-    <View style={[styles.container, { backgroundColor: background }]}>
-      {/* Mode Toggle */}
-      <View style={styles.toggle}>
-        {(['login','register'] as const).map(m => (
-          <TouchableOpacity key={m} onPress={() => setMode(m)}>
-            <Text style={[
-              styles.toggleText,
-              {
-                color: mode === m ? tint : Colors[scheme].tabIconDefault,
-                fontWeight: mode === m ? 'bold' : '400'
-              }
-            ]}>
-              {m === 'login' ? 'Sign In' : 'Register'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Register needs username */}
-      {mode === 'register' && (
-        <TextInput
-          placeholder="Username"
-          placeholderTextColor={Colors[scheme].tabIconDefault}
-          style={[styles.input, { borderColor: tint, color: text }]}
-          value={username}
-          onChangeText={setUsername}
-        />
-      )}
-
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor={Colors[scheme].tabIconDefault}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={[styles.input, { borderColor: tint, color: text }]}
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor={Colors[scheme].tabIconDefault}
-        secureTextEntry
-        style={[styles.input, { borderColor: tint, color: text }]}
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <View style={styles.buttonWrapper}>
-        <Button
-          title={loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Sign Up'}
-          onPress={handle}
-          color={background}
-          disabled={loading}
-        />
-      </View>
-      <Button title="Back" onPress={onDone} />
-    </View>
-
-  );
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      {mode === "login" && renderLoginScreen()}
+      {mode === "signup" && renderSignUpScreen()}
+      {mode === "forgot" && renderForgotScreen()}
+      {mode === "emailSent" && renderEmailSentScreen()}
+    </SafeAreaView>
+  )
 }
 
 const styles = StyleSheet.create({
-  container:     { flex:1, padding:20, justifyContent:'center' },
-  toggle:        { flexDirection:'row', justifyContent:'center', marginBottom:24 },
-  toggleText:    { fontSize:18, marginHorizontal:16 },
-  input:         {
-    borderWidth:1,
-    borderRadius:6,
-    padding:12,
-    marginBottom:16
+  container: {
+    flex: 1,
   },
-  buttonWrapper: {
-    marginTop:8,
-    borderRadius:6,
-    overflow:'hidden'
+  content: {
+    flex: 1,
+    paddingHorizontal: 32,
+    paddingVertical: 40,
   },
-});
+  header: {
+    marginBottom: 40,
+    marginTop: 60,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  form: {
+    gap: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  forgotLink: {
+    textAlign: "right",
+    fontSize: 14,
+  },
+  primaryButton: {
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  linkText: {
+    textAlign: "center",
+    fontSize: 14,
+    marginTop: 10,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 10,
+  },
+  backText: {
+    fontSize: 14,
+  },
+  emailIconContainer: {
+    alignItems: "center",
+    marginVertical: 40,
+  },
+  emailIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+})
