@@ -3,7 +3,14 @@
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
 import { useColorScheme } from "@/hooks/useColorScheme"
-import { supabase } from "@/utils/supabase"
+import {
+    createUserProfile,
+    getUserProfile,
+    isUsernameAvailable,
+    updateUserAuth,
+    updateUsername,
+    type UserProfile,
+} from "@/utils/api"
 import { useEffect, useState } from "react"
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
@@ -20,6 +27,10 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
   const colors = Colors[scheme]
 
   const [loading, setLoading] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+
+  // Form fields
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [username, setUsername] = useState("")
@@ -30,13 +41,39 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
   const [status, setStatus] = useState("Active")
 
   useEffect(() => {
-    // Load current user data
-    if (session?.user) {
-      setFullName(session.user.user_metadata?.full_name || "")
-      setEmail(session.user.email || "")
-      // Username would come from your users table
-      setUsername(session.user.user_metadata?.username || "")
+    const fetchUserProfile = async () => {
+      if (!session?.user?.id) return
+
+      try {
+        // Load current user data from auth
+        setFullName(session.user.user_metadata?.full_name || "")
+        setEmail(session.user.email || "")
+
+        // Fetch user profile from public users table
+        const profile = await getUserProfile(session.user.id)
+        setUserProfile(profile)
+        setUsername(profile.username)
+        setStatus(profile.account_status)
+      } catch (error: any) {
+        console.error("Error fetching user profile:", error)
+        // If user doesn't exist in users table, create a basic entry
+        if (error.code === "PGRST116") {
+          try {
+            const defaultUsername = session.user.email?.split("@")[0] || "user"
+            const newProfile = await createUserProfile(session.user.id, defaultUsername)
+            setUserProfile(newProfile)
+            setUsername(newProfile.username)
+            setStatus(newProfile.account_status)
+          } catch (createError) {
+            console.error("Error creating user profile:", createError)
+          }
+        }
+      } finally {
+        setProfileLoading(false)
+      }
     }
+
+    fetchUserProfile()
   }, [session])
 
   const handleUpdate = async () => {
@@ -45,43 +82,69 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
       return
     }
 
+    if (!username.trim()) {
+      Alert.alert("Error", "Username is required")
+      return
+    }
+
+    // Check if username is already taken (excluding current user)
+    try {
+      const available = await isUsernameAvailable(username.trim(), session.user.id)
+      if (!available) {
+        Alert.alert("Error", "Username is already taken")
+        return
+      }
+    } catch (error) {
+      console.error("Error checking username availability:", error)
+    }
+
     setLoading(true)
     try {
-      // Update user metadata in Supabase Auth
-      const { error: authError } = await supabase.auth.updateUser({
+      // Prepare auth updates
+      const authUpdates: any = {
         data: {
           full_name: fullName,
-          username: username,
         },
-      })
-
-      if (authError) throw authError
+      }
 
       // Update email if changed
       if (email !== session.user.email) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: email,
-        })
-        if (emailError) throw emailError
+        authUpdates.email = email
       }
 
       // Update password if provided
       if (password.trim()) {
-        const { error: passwordError } = await supabase.auth.updateUser({
-          password: password,
-        })
-        if (passwordError) throw passwordError
+        if (password.length < 6) {
+          Alert.alert("Error", "Password must be at least 6 characters long")
+          setLoading(false)
+          return
+        }
+        authUpdates.password = password
       }
 
-      // TODO: Update your users table with username, birth date, status
-      // This would require a database function or API call
+      // Update user auth data
+      await updateUserAuth(authUpdates)
+
+      // Update username in public users table
+      await updateUsername(session.user.id, username.trim())
 
       Alert.alert("Success", "Profile updated successfully", [{ text: "OK", onPress: onBack }])
     } catch (error: any) {
+      console.error("Update error:", error)
       Alert.alert("Error", error.message || "Failed to update profile")
     } finally {
       setLoading(false)
     }
+  }
+
+  if (profileLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <View style={styles.center}>
+          <Text style={[{ color: colors.text }]}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    )
   }
 
   return (
@@ -215,6 +278,11 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
     flexDirection: "row",

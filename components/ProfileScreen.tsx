@@ -3,8 +3,10 @@
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
 import { useColorScheme } from "@/hooks/useColorScheme"
+import { createUserProfile, getUserProfile, type UserProfile } from "@/utils/api"
 import { supabase } from "@/utils/supabase"
-import { useState } from "react"
+import { router } from "expo-router"
+import { useEffect, useState } from "react"
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -20,6 +22,36 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
   const colors = Colors[scheme]
 
   const [loading, setLoading] = useState(false)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+
+  // Fetch user profile from public users table
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!session?.user?.id) return
+
+      try {
+        const profile = await getUserProfile(session.user.id)
+        setUserProfile(profile)
+      } catch (error: any) {
+        console.error("Error fetching user profile:", error)
+        // If user doesn't exist in users table, create a basic entry
+        if (error.code === "PGRST116") {
+          try {
+            const defaultUsername = session.user.email?.split("@")[0] || "user"
+            const newProfile = await createUserProfile(session.user.id, defaultUsername)
+            setUserProfile(newProfile)
+          } catch (createError) {
+            console.error("Error creating user profile:", createError)
+          }
+        }
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    fetchUserProfile()
+  }, [session])
 
   const handleLogout = async () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -54,6 +86,16 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
     Alert.alert("Coming Soon", `${feature} will be available in a future update.`)
   }
 
+  if (profileLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <View style={styles.center}>
+          <Text style={[{ color: colors.text }]}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* Header */}
@@ -73,7 +115,9 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
           <View style={[styles.avatar, { backgroundColor: colors.cardBackground }]}>
             <IconSymbol name="person.crop.circle" size={60} color={colors.secondaryText} />
           </View>
-          <Text style={[styles.name, { color: colors.text }]}>{session?.user?.user_metadata?.full_name || "User"}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>
+            {userProfile?.username || "User"}
+          </Text>
           <Text style={[styles.email, { color: colors.secondaryText }]}>{session?.user?.email}</Text>
           <TouchableOpacity
             style={[styles.editButton, { backgroundColor: colors.cardBackground }]}
@@ -89,7 +133,7 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: colors.background }]}
-            onPress={() => handlePlaceholderAction("Scan History")}
+            onPress={() => router.push("/(tabs)/scan-history")}
           >
             <IconSymbol name="clock.fill" size={20} color={colors.text} />
             <Text style={[styles.menuText, { color: colors.text }]}>Scan History</Text>
@@ -155,6 +199,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -200,7 +249,12 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 14,
+    marginBottom: 4,
+  },
+  username: {
+    fontSize: 14,
     marginBottom: 20,
+    fontStyle: "italic",
   },
   editButton: {
     paddingHorizontal: 24,
