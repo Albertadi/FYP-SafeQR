@@ -44,7 +44,14 @@ export default function TabLayout() {
         name="register"
         options={{
           title: 'Register',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.crop.circle.badge.plus" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="scan-history"
+        options={{
+          title: 'Scan History',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
         }}
       />
     </Tabs>
