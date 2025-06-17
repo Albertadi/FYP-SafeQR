@@ -1,4 +1,4 @@
-// app/(tabs)/index.tsx
+// app/(tabs)/register.tsx
 import AuthScreen from '@/components/AuthScreen';
 import GetStarted from '@/components/GetStarted';
 import HomeScreen from '@/components/HomeScreen';
@@ -6,7 +6,7 @@ import { supabase } from '@/utils/supabase';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-export default function IndexTab() {
+export default function RegisterHomeScreen() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false)

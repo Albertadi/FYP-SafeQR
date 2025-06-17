@@ -1,197 +1,353 @@
-// app/(tabs)/scan-history.tsx
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { getScanHistory, QRScan } from '@/utils/api';
-import { supabase } from '@/utils/supabase';
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  SectionList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+"use client"
 
-type SectionData = { title: string; data: QRScan[] };
+import { IconSymbol } from "@/components/ui/IconSymbol"
+import { Colors } from "@/constants/Colors"
+import { useColorScheme } from "@/hooks/useColorScheme"
+import { getScanHistory, type QRScan } from "@/utils/api"
+import { supabase } from "@/utils/supabase"
+import { useEffect, useMemo, useState } from "react"
+import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function ScanHistoryScreen() {
-  const insets = useSafeAreaInsets();
-  const rawScheme = useColorScheme();
-  const scheme    = rawScheme || 'light';
-  const { background, text, tint, tabIconDefault } = Colors[scheme];
+  const insets = useSafeAreaInsets()
+  const rawScheme = useColorScheme()
+  const scheme = rawScheme || "light"
+  const colors = Colors[scheme]
 
-  const [history, setHistory] = useState<QRScan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [query, setQuery]     = useState('');
-  const [sortAsc, setSortAsc] = useState(false);
+  const [session, setSession] = useState<any>(null)
+  const [history, setHistory] = useState<QRScan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [query, setQuery] = useState("")
+  const [sortAsc, setSortAsc] = useState(false)
 
   useEffect(() => {
-    (async () => {
+    // Check authentication state
+    const checkAuth = async () => {
       const {
         data: { session },
         error: sessionError,
-      } = await supabase.auth.getSession();
+      } = await supabase.auth.getSession()
+
+      setSession(session)
+
       if (!session?.user?.id || sessionError) {
-        setLoading(false);
-        return;
+        setLoading(false)
+        return
       }
+
+      // If logged in, fetch scan history
       try {
-        const result = await getScanHistory(session.user.id);
-        setHistory(result);
+        const result = await getScanHistory(session.user.id)
+        setHistory(result)
       } catch (e) {
-        console.error(e);
+        console.error(e)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    })();
-  }, []);
+    }
+
+    checkAuth()
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      if (session?.user?.id) {
+        // Refetch history when user logs in
+        getScanHistory(session.user.id).then(setHistory).catch(console.error)
+      } else {
+        // Clear history when user logs out
+        setHistory([])
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const filtered = useMemo(() => {
-    let arr = history.filter(item =>
-      item.decoded_content.toLowerCase().includes(query.toLowerCase())
-    );
+    const arr = history.filter((item) => item.decoded_content.toLowerCase().includes(query.toLowerCase()))
     return arr.sort((a, b) =>
       sortAsc
         ? new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
-        : new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime()
-    );
-  }, [history, query, sortAsc]);
+        : new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime(),
+    )
+  }, [history, query, sortAsc])
 
-  const sections: SectionData[] = useMemo(() => {
-    const groups: Record<string, QRScan[]> = {};
-    filtered.forEach(item => {
-      const d = new Date(item.scanned_at).toLocaleDateString();
-      (groups[d] = groups[d] || []).push(item);
-    });
-    return Object.entries(groups).map(([title, data]) => ({ title, data }));
-  }, [filtered]);
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+  }
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.center, { backgroundColor: background, paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={tint} />
+      <SafeAreaView style={[styles.center, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color={colors.tint} />
       </SafeAreaView>
-    );
+    )
+  }
+
+  // Show login prompt if not authenticated
+  if (!session) {
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: colors.screenBackground, paddingTop: insets.top }]}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.borderColor }]}>
+          <TouchableOpacity style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>History</Text>
+          </View>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        {/* Login Required Message */}
+        <View style={styles.loginPromptContainer}>
+          <IconSymbol name="person.crop.circle.badge.exclamationmark" size={64} color={colors.secondaryText} />
+          <Text style={[styles.loginPromptTitle, { color: colors.text }]}>Login Required</Text>
+          <Text style={[styles.loginPromptMessage, { color: colors.secondaryText }]}>
+            You need to be logged in to view your scan history.
+          </Text>
+          <TouchableOpacity
+            style={[styles.loginButton, { backgroundColor: colors.tint }]}
+            onPress={() => {
+              // Navigate to register/login tab
+              // This assumes you're using expo-router navigation
+            }}
+          >
+            <Text style={[styles.loginButtonText, { color: colors.background }]}>Go to Login</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    )
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: background, paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.screenBackground, paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: text }]}>History</Text>
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.borderColor }]}>
+        <TouchableOpacity style={styles.backButton}>
+          <IconSymbol name="chevron.left" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>History</Text>
+        </View>
+        <View style={styles.headerSpacer} />
       </View>
 
-      {/* Search + Sort */}
-      <View style={styles.controls}>
-        <View style={[styles.searchBox, { borderColor: tint }]}>
-          <IconSymbol name="magnifyingglass" size={20} color={tabIconDefault} />
+      {/* Search Bar */}
+      <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+        <View style={[styles.searchBox, { backgroundColor: colors.searchBackground }]}>
+          <IconSymbol name="magnifyingglass" size={18} color={colors.placeholderText} />
           <TextInput
-            style={[styles.searchInput, { color: text }]}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search"
-            placeholderTextColor={tabIconDefault}
+            placeholderTextColor={colors.placeholderText}
             value={query}
             onChangeText={setQuery}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
-              <IconSymbol name="xmark.circle.fill" size={18} color={tabIconDefault} />
+            <TouchableOpacity onPress={() => setQuery("")}>
+              <IconSymbol name="xmark" size={16} color={colors.placeholderText} />
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity style={styles.sortButton} onPress={() => setSortAsc(s => !s)}>
-          <Text style={{ color: tint, marginRight: 4 }}>Sort by date</Text>
-          <IconSymbol name={sortAsc ? 'chevron.up' : 'chevron.down'} size={18} color={tint} />
+      </View>
+
+      {/* Sort Controls */}
+      <View style={[styles.sortContainer, { backgroundColor: colors.background }]}>
+        <TouchableOpacity style={styles.sortButton} onPress={() => setSortAsc((s) => !s)}>
+          <Text style={[styles.sortText, { color: colors.secondaryText }]}>sort by date</Text>
+          <IconSymbol name="chevron.down" size={14} color={colors.secondaryText} />
         </TouchableOpacity>
       </View>
 
       {/* List */}
-      <SectionList
-        sections={sections}
-        keyExtractor={item => item.scan_id}
-        contentContainerStyle={{ padding: 16 }}
-        ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: text }]}>No scan history available.</Text>
-        }
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={[styles.sectionHeader, { color: text }]}>{title}</Text>
-        )}
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.scan_id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.text }]}>No scan history available.</Text>}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.card, { backgroundColor: background, borderColor: tint }]}
-            onPress={() => {}}
-          >
-            <IconSymbol name="link" size={24} color={tint} style={{ marginRight: 12 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.urlText, { color: text }]} numberOfLines={1}>
-                {item.decoded_content}
-              </Text>
-              <Text style={styles.statusLine}>
-                Status:{' '}
-                <Text style={{ color: item.security_status.toLowerCase() === 'safe' ? 'green' : 'red' }}>
-                  {item.security_status}
+          <View style={styles.itemContainer}>
+            <Text style={[styles.timestamp, { color: colors.secondaryText }]}>{formatDateTime(item.scanned_at)}</Text>
+            <TouchableOpacity style={[styles.card, { backgroundColor: colors.cardBackground }]} onPress={() => {}}>
+              <View style={styles.iconContainer}>
+                <IconSymbol name="link" size={24} color={colors.text} />
+              </View>
+              <View style={styles.contentContainer}>
+                <Text style={[styles.urlLabel, { color: colors.secondaryText }]}>URL:</Text>
+                <Text style={[styles.urlText, { color: colors.text }]} numberOfLines={1}>
+                  {item.decoded_content}
                 </Text>
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={tabIconDefault} />
-          </TouchableOpacity>
+                <View style={styles.statusContainer}>
+                  <Text style={[styles.statusLabel, { color: colors.secondaryText }]}>Status: </Text>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: item.security_status.toLowerCase() === "safe" ? "#4CAF50" : "#F44336" },
+                    ]}
+                  >
+                    {item.security_status}
+                  </Text>
+                </View>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color={colors.secondaryText} />
+            </TouchableOpacity>
+          </View>
         )}
       />
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerTitle: { fontSize: 20, fontWeight: '600' },
+  backButton: {
+    padding: 4,
+    width: 32,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  headerSpacer: {
+    width: 32,
+  },
 
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  // Login prompt styles
+  loginPromptContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  loginPromptTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  loginPromptMessage: {
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  loginButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  searchContainer: {
     paddingHorizontal: 16,
-    marginTop: 12,
+    paddingVertical: 8,
   },
   searchBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  searchInput: { flex: 1, marginHorizontal: 6, height: 32 },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+  },
 
-  sortButton: { flexDirection: 'row', alignItems: 'center' },
-
-  sectionHeader: {
+  sortContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    alignItems: "flex-end",
+  },
+  sortButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sortText: {
     fontSize: 14,
-    fontWeight: '500',
-    marginTop: 24,
-    marginBottom: 8,
+    marginRight: 4,
+  },
+
+  listContainer: {
+    padding: 16,
+  },
+
+  itemContainer: {
+    marginBottom: 16,
+  },
+
+  timestamp: {
+    fontSize: 12,
+    marginBottom: 4,
+    fontWeight: "500",
   },
 
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-    borderRadius: 10,
-    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 12,
   },
-  urlText: { fontSize: 16, fontWeight: '500' },
-  statusLine: { fontSize: 12, marginTop: 4 },
 
-  emptyText: { textAlign: 'center', marginTop: 40, fontSize: 16 },
-});
+  iconContainer: {
+    marginRight: 12,
+  },
+
+  contentContainer: {
+    flex: 1,
+  },
+
+  urlLabel: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+
+  urlText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+
+  statusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  statusLabel: {
+    fontSize: 12,
+  },
+
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  emptyText: {
+    textAlign: "center",
+    marginTop: 40,
+    fontSize: 16,
+  },
+})
