@@ -1,12 +1,13 @@
 "use client"
 
+import ScanDetailsModal from "@/components/ScanDetailsModal"
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { getScanHistory, type QRScan } from "@/utils/api"
 import { supabase } from "@/utils/supabase"
 import { router } from "expo-router"
-import { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -21,6 +22,9 @@ export default function ScanHistoryScreen() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState("")
   const [sortAsc, setSortAsc] = useState(false)
+
+  const [selectedScan, setSelectedScan] = useState<QRScan | null>(null)
+  const [showScanDetails, setShowScanDetails] = useState(false)
 
   useEffect(() => {
     // Check authentication state
@@ -81,6 +85,11 @@ export default function ScanHistoryScreen() {
     return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
   }
 
+  const handleScanPress = (scan: QRScan) => {
+    setSelectedScan(scan)
+    setShowScanDetails(true)
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -125,82 +134,99 @@ export default function ScanHistoryScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.screenBackground, paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.borderColor }]}>
-        <TouchableOpacity style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>History</Text>
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.searchBox, { backgroundColor: colors.searchBackground }]}>
-          <IconSymbol name="magnifyingglass" size={18} color={colors.placeholderText} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search"
-            placeholderTextColor={colors.placeholderText}
-            value={query}
-            onChangeText={setQuery}
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery("")}>
-              <IconSymbol name="xmark" size={16} color={colors.placeholderText} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Sort Controls */}
-      <View style={[styles.sortContainer, { backgroundColor: colors.background }]}>
-        <TouchableOpacity style={styles.sortButton} onPress={() => setSortAsc((s) => !s)}>
-          <Text style={[styles.sortText, { color: colors.secondaryText }]}>sort by date</Text>
-          <IconSymbol name="chevron.down" size={14} color={colors.secondaryText} />
-        </TouchableOpacity>
-      </View>
-
-      {/* List */}
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.scan_id}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.text }]}>No scan history available.</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.itemContainer}>
-            <Text style={[styles.timestamp, { color: colors.secondaryText }]}>{formatDateTime(item.scanned_at)}</Text>
-            <TouchableOpacity style={[styles.card, { backgroundColor: colors.cardBackground }]} onPress={() => {}}>
-              <View style={styles.iconContainer}>
-                <IconSymbol name="link" size={24} color={colors.text} />
-              </View>
-              <View style={styles.contentContainer}>
-                <Text style={[styles.urlLabel, { color: colors.secondaryText }]}>URL:</Text>
-                <Text style={[styles.urlText, { color: colors.text }]} numberOfLines={1}>
-                  {item.decoded_content}
-                </Text>
-                <View style={styles.statusContainer}>
-                  <Text style={[styles.statusLabel, { color: colors.secondaryText }]}>Status: </Text>
-                  <Text
-                    style={[
-                      styles.statusText,
-                      { color: item.security_status.toLowerCase() === "safe" ? "#4CAF50" : "#F44336" },
-                    ]}
-                  >
-                    {item.security_status}
-                  </Text>
-                </View>
-              </View>
-              <IconSymbol name="chevron.right" size={20} color={colors.secondaryText} />
-            </TouchableOpacity>
+    <>
+      <SafeAreaView style={[styles.screen, { backgroundColor: colors.screenBackground, paddingTop: insets.top }]}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.borderColor }]}>
+          <TouchableOpacity style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>History</Text>
           </View>
-        )}
+          <View style={styles.headerSpacer} />
+        </View>
+
+        {/* Search Bar */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.searchBox, { backgroundColor: colors.searchBackground }]}>
+            <IconSymbol name="magnifyingglass" size={18} color={colors.placeholderText} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search"
+              placeholderTextColor={colors.placeholderText}
+              value={query}
+              onChangeText={setQuery}
+            />
+            {query.length > 0 && (
+              <TouchableOpacity onPress={() => setQuery("")}>
+                <IconSymbol name="xmark" size={16} color={colors.placeholderText} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Sort Controls */}
+        <View style={[styles.sortContainer, { backgroundColor: colors.background }]}>
+          <TouchableOpacity style={styles.sortButton} onPress={() => setSortAsc((s) => !s)}>
+            <Text style={[styles.sortText, { color: colors.secondaryText }]}>sort by date</Text>
+            <IconSymbol name="chevron.down" size={14} color={colors.secondaryText} />
+          </TouchableOpacity>
+        </View>
+
+        {/* List */}
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.scan_id}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={[styles.emptyText, { color: colors.text }]}>No scan history available.</Text>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.itemContainer}>
+              <Text style={[styles.timestamp, { color: colors.secondaryText }]}>{formatDateTime(item.scanned_at)}</Text>
+              <TouchableOpacity
+                style={[styles.card, { backgroundColor: colors.cardBackground }]}
+                onPress={() => handleScanPress(item)}
+              >
+                <View style={styles.iconContainer}>
+                  <IconSymbol name="link" size={24} color={colors.text} />
+                </View>
+                <View style={styles.contentContainer}>
+                  <Text style={[styles.urlLabel, { color: colors.secondaryText }]}>URL:</Text>
+                  <Text style={[styles.urlText, { color: colors.text }]} numberOfLines={1}>
+                    {item.decoded_content}
+                  </Text>
+                  <View style={styles.statusContainer}>
+                    <Text style={[styles.statusLabel, { color: colors.secondaryText }]}>Status: </Text>
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: item.security_status.toLowerCase() === "safe" ? "#4CAF50" : "#F44336" },
+                      ]}
+                    >
+                      {item.security_status}
+                    </Text>
+                  </View>
+                </View>
+                <IconSymbol name="chevron.right" size={20} color={colors.secondaryText} />
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      </SafeAreaView>
+
+      {/* Scan Details Modal */}
+      <ScanDetailsModal
+        visible={showScanDetails}
+        scan={selectedScan}
+        onClose={() => {
+          setShowScanDetails(false)
+          setSelectedScan(null)
+        }}
       />
-    </SafeAreaView>
+    </>
   )
 }
 
