@@ -2,9 +2,15 @@
 
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
+import {
+  onPasswordRecovery,
+  register,
+  sendPasswordResetEmail,
+  signIn,
+  updatePasswordFromRecovery,
+} from "@/controllers/authController"
 import { useColorScheme } from "@/hooks/useColorScheme"
-import { supabase } from "@/utils/supabase"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -12,7 +18,7 @@ interface AuthScreenProps {
   onDone: () => void
 }
 
-type AuthMode = "login" | "signup" | "forgot" | "emailSent"
+type AuthMode = "login" | "signup" | "forgot" | "emailSent" | "resetPassword"
 
 export default function AuthScreen({ onDone }: AuthScreenProps) {
   const insets = useSafeAreaInsets()
@@ -24,8 +30,23 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [fullName, setFullName] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [username, setUsername] = useState("")
   const [loading, setLoading] = useState(false)
+
+  // Listen for password recovery events
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = onPasswordRecovery((session) => {
+      if (session) {
+        setMode("resetPassword")
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -34,21 +55,18 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
     }
 
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      Alert.alert("Login Error", error.message)
-    } else {
+    try {
+      await signIn(email, password)
       onDone()
+    } catch (error: any) {
+      Alert.alert("Login Error", error.message)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword || !fullName) {
+    if (!email || !password || !confirmPassword || !username) {
       Alert.alert("Error", "Please fill in all fields")
       return
     }
@@ -58,41 +76,65 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
       return
     }
 
-    setLoading(true)
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
-    })
+    if (password.length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters long")
+      return
+    }
 
-    if (error) {
-      Alert.alert("Sign Up Error", error.message)
-    } else {
+    setLoading(true)
+    try {
+      await register(email, password, username)
       Alert.alert("Success", "Please check your email to verify your account")
       onDone()
+    } catch (error: any) {
+      Alert.alert("Sign Up Error", error.message)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
-  const handleForgotPassword = async () => {
+  const handleSendResetEmail = async () => {
     if (!email) {
       Alert.alert("Error", "Please enter your email address")
       return
     }
 
     setLoading(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
-
-    if (error) {
-      Alert.alert("Error", error.message)
-    } else {
+    try {
+      await sendPasswordResetEmail(email)
       setMode("emailSent")
+    } catch (error: any) {
+      Alert.alert("Error", error.message)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
+  }
+
+  const handleResetPassword = async () => {
+    if (!newPassword || !confirmNewPassword) {
+      Alert.alert("Error", "Please fill in all fields")
+      return
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      Alert.alert("Error", "Passwords do not match")
+      return
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters long")
+      return
+    }
+
+    setLoading(true)
+    try {
+      await updatePasswordFromRecovery(newPassword)
+      Alert.alert("Success", "Password has been reset successfully!", [{ text: "OK", onPress: () => setMode("login") }])
+    } catch (error: any) {
+      Alert.alert("Error", error.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const renderLoginScreen = () => (
@@ -105,7 +147,7 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
       <View style={styles.form}>
         <TextInput
           style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
-          placeholder="Username"
+          placeholder="Email Address"
           placeholderTextColor={colors.placeholderText}
           value={email}
           onChangeText={setEmail}
@@ -152,10 +194,10 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
       <View style={styles.form}>
         <TextInput
           style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
-          placeholder="Full Name"
+          placeholder="Username"
           placeholderTextColor={colors.placeholderText}
-          value={fullName}
-          onChangeText={setFullName}
+          value={username}
+          onChangeText={setUsername}
         />
 
         <TextInput
@@ -191,7 +233,7 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
           onPress={handleSignUp}
           disabled={loading}
         >
-          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>{loading ? "Loading..." : "Login"}</Text>
+          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>{loading ? "Loading..." : "Sign Up"}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setMode("login")}>
@@ -206,9 +248,9 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
   const renderForgotScreen = () => (
     <View style={styles.content}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Forget Password?</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Forgot Password?</Text>
         <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
-          Please enter your email address below to receive a new password.
+          Please enter your email address below to receive a password reset link.
         </Text>
       </View>
 
@@ -225,10 +267,12 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
 
         <TouchableOpacity
           style={[styles.primaryButton, { backgroundColor: "#000" }]}
-          onPress={handleForgotPassword}
+          onPress={handleSendResetEmail}
           disabled={loading}
         >
-          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>{loading ? "Loading..." : "Login"}</Text>
+          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>
+            {loading ? "Sending..." : "Send Reset Link"}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setMode("login")} style={styles.backButton}>
@@ -244,7 +288,7 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Email has been sent!</Text>
         <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
-          Please check your inbox and you will see your new password.
+          Please check your inbox and click the reset link to continue.
         </Text>
       </View>
 
@@ -256,13 +300,63 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
 
       <View style={styles.form}>
         <TouchableOpacity style={[styles.primaryButton, { backgroundColor: "#000" }]} onPress={() => setMode("login")}>
-          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>Login</Text>
+          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>Back to Login</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleForgotPassword}>
+        <TouchableOpacity onPress={handleSendResetEmail}>
           <Text style={[styles.linkText, { color: colors.secondaryText }]}>
             Didn't receive the link? <Text style={{ color: colors.text, fontWeight: "600" }}>Resend</Text>
           </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+
+  const renderResetPasswordScreen = () => (
+    <View style={styles.content}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>Reset Password</Text>
+        <Text style={[styles.subtitle, { color: colors.secondaryText }]}>Please enter your new password below.</Text>
+      </View>
+
+      <View style={styles.form}>
+        <TextInput
+          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+          placeholder="New Password"
+          placeholderTextColor={colors.placeholderText}
+          value={newPassword}
+          onChangeText={setNewPassword}
+          secureTextEntry
+        />
+
+        <TextInput
+          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+          placeholder="Confirm New Password"
+          placeholderTextColor={colors.placeholderText}
+          value={confirmNewPassword}
+          onChangeText={setConfirmNewPassword}
+          secureTextEntry
+        />
+
+        <View style={styles.passwordRequirements}>
+          <Text style={[styles.requirementText, { color: colors.secondaryText }]}>
+            Password must be at least 6 characters long
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.primaryButton, { backgroundColor: "#000" }]}
+          onPress={handleResetPassword}
+          disabled={loading}
+        >
+          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>
+            {loading ? "Updating..." : "Update Password"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => setMode("login")} style={styles.backButton}>
+          <IconSymbol name="chevron.left" size={16} color={colors.secondaryText} />
+          <Text style={[styles.backText, { color: colors.secondaryText }]}>Back to log in</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -274,6 +368,7 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
       {mode === "signup" && renderSignUpScreen()}
       {mode === "forgot" && renderForgotScreen()}
       {mode === "emailSent" && renderEmailSentScreen()}
+      {mode === "resetPassword" && renderResetPasswordScreen()}
     </SafeAreaView>
   )
 }
@@ -349,5 +444,13 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  passwordRequirements: {
+    marginTop: -10,
+    marginBottom: 10,
+  },
+  requirementText: {
+    fontSize: 12,
+    fontStyle: "italic",
   },
 })

@@ -2,15 +2,15 @@
 
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
-import { useColorScheme } from "@/hooks/useColorScheme"
+import { updateUserAuth } from "@/controllers/authController"
 import {
-    createUserProfile,
-    getUserProfile,
-    isUsernameAvailable,
-    updateUserAuth,
-    updateUsername,
-    type UserProfile,
-} from "@/utils/api"
+  createUserProfile,
+  getUserProfile,
+  isUsernameAvailable,
+  updateUsername,
+  type UserProfile,
+} from "@/controllers/userProfileController"
+import { useColorScheme } from "@/hooks/useColorScheme"
 import { useEffect, useState } from "react"
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
@@ -60,7 +60,7 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
         if (error.code === "PGRST116") {
           try {
             const defaultUsername = session.user.email?.split("@")[0] || "user"
-            const newProfile = await createUserProfile(session.user.id, defaultUsername)
+            const newProfile = await createUserProfile(session.user.id, defaultUsername, session.user.email || "")
             setUserProfile(newProfile)
             setUsername(newProfile.username)
             setStatus(newProfile.account_status)

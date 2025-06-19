@@ -2,8 +2,8 @@
 
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
+import { createUserProfile, getUserProfile, type UserProfile } from "@/controllers/userProfileController"
 import { useColorScheme } from "@/hooks/useColorScheme"
-import { createUserProfile, getUserProfile, type UserProfile } from "@/utils/api"
 import { supabase } from "@/utils/supabase"
 import { router } from "expo-router"
 import { useEffect, useState } from "react"
@@ -39,7 +39,7 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
         if (error.code === "PGRST116") {
           try {
             const defaultUsername = session.user.email?.split("@")[0] || "user"
-            const newProfile = await createUserProfile(session.user.id, defaultUsername)
+            const newProfile = await createUserProfile(session.user.id, defaultUsername, session.user.email)
             setUserProfile(newProfile)
           } catch (createError) {
             console.error("Error creating user profile:", createError)

@@ -20,6 +20,7 @@ export async function register(email: string, password: string, username: string
       {
         user_id: user.id, // FK → auth.users.id
         username, // username
+        email,
         role: "end_user", // default role
         account_status: "active", // default status
       },
