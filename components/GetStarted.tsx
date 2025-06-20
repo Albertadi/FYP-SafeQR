@@ -4,7 +4,7 @@ import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { router } from "expo-router"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 interface GetStartedProps {
@@ -61,7 +61,11 @@ export default function GetStarted({ onProceedAsGuest }: GetStartedProps) {
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <View style={[styles.logoPlaceholder, { backgroundColor: colors.cardBackground }]}>
-            <Text style={[styles.logoText, { color: colors.secondaryText }]}>Our logo</Text>
+            <Image
+              source={require("@/assets/images/safeQR-logo.png")}
+              style={{ width: 100, height: 100, resizeMode: "contain" }}
+              accessibilityLabel="SafeQR Logo"
+            />
           </View>
         </View>
 
