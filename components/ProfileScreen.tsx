@@ -2,9 +2,9 @@
 
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
+import { signOut } from "@/controllers/authController"
 import { createUserProfile, getUserProfile, type UserProfile } from "@/controllers/userProfileController"
 import { useColorScheme } from "@/hooks/useColorScheme"
-import { supabase } from "@/utils/supabase"
 import { router } from "expo-router"
 import { useEffect, useState } from "react"
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
@@ -39,7 +39,7 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
         if (error.code === "PGRST116") {
           try {
             const defaultUsername = session.user.email?.split("@")[0] || "user"
-            const newProfile = await createUserProfile(session.user.id, defaultUsername, session.user.email)
+            const newProfile = await createUserProfile(session.user.id, defaultUsername, session.user.email || "")
             setUserProfile(newProfile)
           } catch (createError) {
             console.error("Error creating user profile:", createError)
@@ -61,8 +61,13 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
         style: "destructive",
         onPress: async () => {
           setLoading(true)
-          await supabase.auth.signOut()
-          setLoading(false)
+          try {
+            await signOut()
+          } catch (error) {
+            console.error("Logout error:", error)
+          } finally {
+            setLoading(false)
+          }
         },
       },
     ])
@@ -84,6 +89,14 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
   const handlePlaceholderAction = (feature: string) => {
     Alert.alert("Coming Soon", `${feature} will be available in a future update.`)
+  }
+
+  const formatMemberSince = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    })
   }
 
   if (profileLoading) {
@@ -115,16 +128,54 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
           <View style={[styles.avatar, { backgroundColor: colors.cardBackground }]}>
             <IconSymbol name="person.crop.circle" size={60} color={colors.secondaryText} />
           </View>
-          <Text style={[styles.name, { color: colors.text }]}>
-            {userProfile?.username || "User"}
-          </Text>
+          <Text style={[styles.name, { color: colors.text }]}>@{userProfile?.username || "User"}</Text>
           <Text style={[styles.email, { color: colors.secondaryText }]}>{session?.user?.email}</Text>
+
           <TouchableOpacity
             style={[styles.editButton, { backgroundColor: colors.cardBackground }]}
             onPress={onEditProfile}
           >
             <Text style={[styles.editButtonText, { color: colors.text }]}>Edit Profile</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* User Details Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Information</Text>
+
+          <View style={styles.infoItem}>
+            <Text style={[styles.infoLabel, { color: colors.secondaryText }]}>Role</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>
+              {userProfile?.role?.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()) || "User"}
+            </Text>
+          </View>
+
+          <View style={styles.infoItem}>
+            <Text style={[styles.infoLabel, { color: colors.secondaryText }]}>Account Status</Text>
+            <Text
+              style={[
+                styles.infoValue,
+                {
+                  color:
+                    userProfile?.account_status && userProfile.account_status === "active"
+                      ? "#4CAF50"
+                      : "#F44336",
+                },
+              ]}
+            >
+              {userProfile?.account_status
+                ? userProfile.account_status.charAt(0).toUpperCase() +
+                  userProfile.account_status.slice(1)
+                : "Active"}
+            </Text>
+          </View>
+
+          <View style={styles.infoItem}>
+            <Text style={[styles.infoLabel, { color: colors.secondaryText }]}>Member Since</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>
+              {userProfile?.created_at ? formatMemberSince(userProfile.created_at) : "Unknown"}
+            </Text>
+          </View>
         </View>
 
         {/* Account Settings Section */}
@@ -295,5 +346,19 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  infoItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  infoLabel: {
+    fontSize: 16,
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: "500",
   },
 })

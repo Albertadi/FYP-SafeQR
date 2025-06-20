@@ -31,29 +31,18 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
   // Form fields
-  const [fullName, setFullName] = useState("")
-  const [email, setEmail] = useState("")
   const [username, setUsername] = useState("")
-  const [birthDay, setBirthDay] = useState("1")
-  const [birthMonth, setBirthMonth] = useState("1")
-  const [birthYear, setBirthYear] = useState("2000")
   const [password, setPassword] = useState("")
-  const [status, setStatus] = useState("Active")
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!session?.user?.id) return
 
       try {
-        // Load current user data from auth
-        setFullName(session.user.user_metadata?.full_name || "")
-        setEmail(session.user.email || "")
-
         // Fetch user profile from public users table
         const profile = await getUserProfile(session.user.id)
         setUserProfile(profile)
         setUsername(profile.username)
-        setStatus(profile.account_status)
       } catch (error: any) {
         console.error("Error fetching user profile:", error)
         // If user doesn't exist in users table, create a basic entry
@@ -63,7 +52,6 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
             const newProfile = await createUserProfile(session.user.id, defaultUsername, session.user.email || "")
             setUserProfile(newProfile)
             setUsername(newProfile.username)
-            setStatus(newProfile.account_status)
           } catch (createError) {
             console.error("Error creating user profile:", createError)
           }
@@ -77,11 +65,6 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
   }, [session])
 
   const handleUpdate = async () => {
-    if (!fullName.trim()) {
-      Alert.alert("Error", "Full name is required")
-      return
-    }
-
     if (!username.trim()) {
       Alert.alert("Error", "Username is required")
       return
@@ -101,16 +84,7 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
     setLoading(true)
     try {
       // Prepare auth updates
-      const authUpdates: any = {
-        data: {
-          full_name: fullName,
-        },
-      }
-
-      // Update email if changed
-      if (email !== session.user.email) {
-        authUpdates.email = email
-      }
+      const authUpdates: any = {}
 
       // Update password if provided
       if (password.trim()) {
@@ -122,8 +96,10 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
         authUpdates.password = password
       }
 
-      // Update user auth data
-      await updateUserAuth(authUpdates)
+      // Update user auth data only if password is being changed
+      if (Object.keys(authUpdates).length > 0) {
+        await updateUserAuth(authUpdates)
+      }
 
       // Update username in public users table
       await updateUsername(session.user.id, username.trim())
@@ -174,30 +150,6 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
         {/* Form Fields */}
         <View style={styles.form}>
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Full Name</Text>
-            <TextInput
-              style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Enter your full name"
-              placeholderTextColor={colors.placeholderText}
-            />
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Email Address</Text>
-            <TextInput
-              style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter your email"
-              placeholderTextColor={colors.placeholderText}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Username</Text>
             <TextInput
               style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
@@ -210,39 +162,6 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Birth Date</Text>
-            <View style={styles.dateRow}>
-              <TextInput
-                style={[styles.dateInput, { borderColor: colors.borderColor, color: colors.text }]}
-                value={birthDay}
-                onChangeText={setBirthDay}
-                placeholder="DD"
-                placeholderTextColor={colors.placeholderText}
-                keyboardType="numeric"
-                maxLength={2}
-              />
-              <TextInput
-                style={[styles.dateInput, { borderColor: colors.borderColor, color: colors.text }]}
-                value={birthMonth}
-                onChangeText={setBirthMonth}
-                placeholder="MM"
-                placeholderTextColor={colors.placeholderText}
-                keyboardType="numeric"
-                maxLength={2}
-              />
-              <TextInput
-                style={[styles.dateInput, { borderColor: colors.borderColor, color: colors.text }]}
-                value={birthYear}
-                onChangeText={setBirthYear}
-                placeholder="YYYY"
-                placeholderTextColor={colors.placeholderText}
-                keyboardType="numeric"
-                maxLength={4}
-              />
-            </View>
-          </View>
-
-          <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Password</Text>
             <TextInput
               style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
@@ -252,13 +171,6 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
               placeholderTextColor={colors.placeholderText}
               secureTextEntry
             />
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Status</Text>
-            <View style={[styles.input, { borderColor: colors.borderColor, justifyContent: "center" }]}>
-              <Text style={[{ color: colors.text }]}>{status}</Text>
-            </View>
           </View>
         </View>
 
@@ -342,19 +254,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
-  },
-  dateRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  dateInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    textAlign: "center",
   },
   updateButton: {
     marginHorizontal: 16,
