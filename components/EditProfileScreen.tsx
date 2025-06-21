@@ -142,9 +142,6 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
           <View style={[styles.avatar, { backgroundColor: colors.cardBackground }]}>
             <IconSymbol name="person.crop.circle" size={60} color={colors.secondaryText} />
           </View>
-          <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "Profile picture upload will be available soon")}>
-            <Text style={[styles.changePhotoText, { color: colors.tint }]}>Change Profile Pic</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Form Fields */}
