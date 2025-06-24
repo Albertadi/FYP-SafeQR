@@ -1,5 +1,5 @@
 // app/permissionDenied.tsx
-import PermissionScreen from '@/components/PermissionScreen';
+import PermissionScreen from '@/components/scanner/PermissionScreen';
 
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useLocalSearchParams, useRouter, } from 'expo-router';

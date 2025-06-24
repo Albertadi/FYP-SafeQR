@@ -9,12 +9,12 @@ type Props = {
 
 const configMap = {
   camera: {
-    image: require('@/assets/images/camera_denied.png'),
+    image: require('@/assets/images/permissions/camera_denied.png'),
     title: 'Unable to access camera',
     message: "Please ensure that SafeQR has permission to access your camera in your device's settings.",
   },
   gallery: {
-    image: require('@/assets/images/gallery_denied.png'),
+    image: require('@/assets/images/permissions/gallery_denied.png'),
     title: 'Unable to access gallery',
     message: "Please ensure that SafeQR has permission to access your gallery in your device's settings.",
   },

@@ -1,6 +1,6 @@
 "use client"
 
-import ScanDetailsModal from "@/components/ScanDetailsModal"
+import ScanDetailsModal from "@/components/scanHistory/ScanDetailsModal"
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
 import { useColorScheme } from "@/hooks/useColorScheme"

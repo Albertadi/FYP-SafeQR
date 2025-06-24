@@ -62,7 +62,7 @@ export default function GetStarted({ onProceedAsGuest }: GetStartedProps) {
         <View style={styles.logoSection}>
           <View style={[styles.logoPlaceholder, { backgroundColor: colors.cardBackground }]}>
             <Image
-              source={require("@/assets/images/safeQR-logo.png")}
+              source={require("@/assets/images/branding/safeQR-logo.png")}
               style={{ width: 100, height: 100, resizeMode: "contain" }}
               accessibilityLabel="SafeQR Logo"
             />

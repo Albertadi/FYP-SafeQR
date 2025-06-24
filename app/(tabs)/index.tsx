@@ -1,7 +1,7 @@
 "use client"
 
-import GetStarted from "@/components/GetStarted"
-import ScanningOverlay from "@/components/ScanningOverlay"
+import ScanningOverlay from "@/components/scanner/ScanningOverlay"
+import GetStarted from "@/components/ui/GetStarted"
 import { handleQRScanned, pickImageAndScan } from "@/utils/scanner"
 import { supabase } from "@/utils/supabase"
 

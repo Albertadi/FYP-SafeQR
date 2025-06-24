@@ -1,5 +1,5 @@
 // app/scanResults.tsx
-import ResultTemplate from '@/components/Results';
+import ResultTemplate from '@/components/scanner/Results';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';

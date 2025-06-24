@@ -1,7 +1,7 @@
 "use client"
 
-import LoginRequiredScreen from "@/components/LoginRequiredScreen"
-import ScanHistoryList from "@/components/ScanHistoryScreen"
+import LoginRequiredScreen from "@/components/auth/LoginRequiredScreen"
+import ScanHistoryList from "@/components/scanHistory/ScanHistoryScreen"
 import { supabase } from "@/utils/supabase"
 import { useEffect, useState } from "react"
 import { ActivityIndicator, View } from "react-native"

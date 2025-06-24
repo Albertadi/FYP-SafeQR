@@ -35,8 +35,8 @@ export default function ScanningOverlay({
       <Image
         source={
           translucent
-            ? require('@/assets/images/qr_frame.png')
-            : require('@/assets/images/qr_frame_placeholder.png')
+            ? require('@/assets/images/scanner/qr_frame.png')
+            : require('@/assets/images/scanner/qr_frame_placeholder.png')
         }
         style={styles.qrImage}
         resizeMode="contain"
