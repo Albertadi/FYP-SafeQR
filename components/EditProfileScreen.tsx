@@ -2,9 +2,8 @@
 
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
-import { updateUserAuth } from "@/controllers/authController"
+import { signOut, updateUserAuth } from "@/controllers/authController"
 import {
-  createUserProfile,
   getUserProfile,
   isUsernameAvailable,
   updateUsername,
@@ -29,6 +28,7 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
   const [loading, setLoading] = useState(false)
   const [profileLoading, setProfileLoading] = useState(true)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [profileError, setProfileError] = useState(false)
 
   // Form fields
   const [username, setUsername] = useState("")
@@ -43,19 +43,10 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
         const profile = await getUserProfile(session.user.id)
         setUserProfile(profile)
         setUsername(profile.username)
+        setProfileError(false)
       } catch (error: any) {
         console.error("Error fetching user profile:", error)
-        // If user doesn't exist in users table, create a basic entry
-        if (error.code === "PGRST116") {
-          try {
-            const defaultUsername = session.user.email?.split("@")[0] || "user"
-            const newProfile = await createUserProfile(session.user.id, defaultUsername, session.user.email || "")
-            setUserProfile(newProfile)
-            setUsername(newProfile.username)
-          } catch (createError) {
-            console.error("Error creating user profile:", createError)
-          }
-        }
+        setProfileError(true)
       } finally {
         setProfileLoading(false)
       }
@@ -113,11 +104,82 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
     }
   }
 
+  const handleRetry = () => {
+    setProfileLoading(true)
+    setProfileError(false)
+
+    const fetchUserProfile = async () => {
+      if (!session?.user?.id) return
+
+      try {
+        const profile = await getUserProfile(session.user.id)
+        setUserProfile(profile)
+        setUsername(profile.username)
+        setProfileError(false)
+      } catch (error: any) {
+        console.error("Error fetching user profile:", error)
+        setProfileError(true)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    fetchUserProfile()
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
+  }
+
   if (profileLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
         <View style={styles.center}>
           <Text style={[{ color: colors.text }]}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  if (profileError) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.borderColor }]}>
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <IconSymbol name="chevron.left" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Profile</Text>
+          </View>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        {/* Error Content */}
+        <View style={styles.errorContainer}>
+          <IconSymbol name="person.crop.circle.badge.exclamationmark" size={64} color={colors.secondaryText} />
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Profile Not Found</Text>
+          <Text style={[styles.errorMessage, { color: colors.secondaryText }]}>
+            We couldn't find your user profile. This might be a temporary issue.
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: colors.tint }]}
+            onPress={handleRetry}
+            disabled={profileLoading}
+          >
+            <Text style={[styles.retryButtonText, { color: colors.background }]}>
+              {profileLoading ? "Loading..." : "Try Again"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.logoutButton, { backgroundColor: "#F44336" }]} onPress={handleLogout}>
+            <Text style={[styles.logoutButtonText, { color: "#fff" }]}>Log Out</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     )
@@ -260,6 +322,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   updateButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  retryButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  logoutButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  logoutButtonText: {
     fontSize: 16,
     fontWeight: "600",
   },

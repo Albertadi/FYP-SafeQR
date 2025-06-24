@@ -3,7 +3,7 @@
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
 import { signOut } from "@/controllers/authController"
-import { createUserProfile, getUserProfile, type UserProfile } from "@/controllers/userProfileController"
+import { getUserProfile, type UserProfile } from "@/controllers/userProfileController"
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { router } from "expo-router"
 import { useEffect, useState } from "react"
@@ -24,6 +24,7 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
   const [loading, setLoading] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
+  const [profileError, setProfileError] = useState(false)
 
   // Fetch user profile from public users table
   useEffect(() => {
@@ -33,18 +34,10 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
       try {
         const profile = await getUserProfile(session.user.id)
         setUserProfile(profile)
+        setProfileError(false)
       } catch (error: any) {
         console.error("Error fetching user profile:", error)
-        // If user doesn't exist in users table, create a basic entry
-        if (error.code === "PGRST116") {
-          try {
-            const defaultUsername = session.user.email?.split("@")[0] || "user"
-            const newProfile = await createUserProfile(session.user.id, defaultUsername, session.user.email || "")
-            setUserProfile(newProfile)
-          } catch (createError) {
-            console.error("Error creating user profile:", createError)
-          }
-        }
+        setProfileError(true)
       } finally {
         setProfileLoading(false)
       }
@@ -87,6 +80,28 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
     ])
   }
 
+  const handleRetry = () => {
+    setProfileLoading(true)
+    setProfileError(false)
+
+    const fetchUserProfile = async () => {
+      if (!session?.user?.id) return
+
+      try {
+        const profile = await getUserProfile(session.user.id)
+        setUserProfile(profile)
+        setProfileError(false)
+      } catch (error: any) {
+        console.error("Error fetching user profile:", error)
+        setProfileError(true)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    fetchUserProfile()
+  }
+
   const handlePlaceholderAction = (feature: string) => {
     Alert.alert("Coming Soon", `${feature} will be available in a future update.`)
   }
@@ -109,17 +124,53 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
     )
   }
 
+  if (profileError) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.borderColor }]}>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Profile</Text>
+          </View>
+        </View>
+
+        {/* Error Content */}
+        <View style={styles.errorContainer}>
+          <IconSymbol name="person.crop.circle.badge.exclamationmark" size={64} color={colors.secondaryText} />
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Profile Not Found</Text>
+          <Text style={[styles.errorMessage, { color: colors.secondaryText }]}>
+            We couldn't find your user profile. This might be a temporary issue.
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: colors.tint }]}
+            onPress={handleRetry}
+            disabled={profileLoading}
+          >
+            <Text style={[styles.retryButtonText, { color: colors.background }]}>
+              {profileLoading ? "Loading..." : "Try Again"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.logoutButton, { backgroundColor: "#F44336" }]}
+            onPress={handleLogout}
+            disabled={loading}
+          >
+            <Text style={[styles.logoutButtonText, { color: "#fff" }]}>{loading ? "LOGGING OUT..." : "LOG OUT"}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.borderColor }]}>
-        <TouchableOpacity style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={colors.text} />
-        </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Profile</Text>
         </View>
-        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -156,16 +207,12 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
               style={[
                 styles.infoValue,
                 {
-                  color:
-                    userProfile?.account_status && userProfile.account_status === "active"
-                      ? "#4CAF50"
-                      : "#F44336",
+                  color: userProfile?.account_status && userProfile.account_status === "active" ? "#4CAF50" : "#F44336",
                 },
               ]}
             >
               {userProfile?.account_status
-                ? userProfile.account_status.charAt(0).toUpperCase() +
-                  userProfile.account_status.slice(1)
+                ? userProfile.account_status.charAt(0).toUpperCase() + userProfile.account_status.slice(1)
                 : "Active"}
             </Text>
           </View>
@@ -274,9 +321,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
-  headerSpacer: {
-    width: 32,
-  },
   content: {
     flex: 1,
   },
@@ -360,5 +404,33 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 16,
     fontWeight: "500",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  retryButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 })
