@@ -1,3 +1,4 @@
+import type { QRContentType } from "./qrParser"; // Import QRContentType
 import { supabase } from "./supabase"
 
 /**
@@ -155,11 +156,12 @@ export interface QRScan {
   user_id: string
   decoded_content: string
   security_status: string
+  content_type: QRContentType // Add this line
   scanned_at: string
 }
 
 export async function recordScan(
-  payload: Pick<QRScan, "user_id" | "decoded_content" | "security_status">,
+  payload: Pick<QRScan, "user_id" | "decoded_content" | "security_status" | "content_type">, // Update payload type
 ): Promise<QRScan> {
   const { data, error } = await supabase.from("qr_scans").insert([payload]).select().single()
 
