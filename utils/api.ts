@@ -207,3 +207,52 @@ export async function submitReport(payload: {
   if (error) throw error
   return data
 }
+
+// additions for login attempts
+export async function incrementLoginAttempt(email: string) {
+  const { data: userData, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email)
+    .single();
+
+  if (error || !userData) throw error;
+
+  const attempts = userData.failed_attempts + 1;
+  const isLocked = attempts >= 5;
+
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({
+      failed_attempts: attempts,
+      account_status: isLocked ? 'locked' : 'active'
+    })
+    .eq('email', email);
+
+  if (updateError) throw updateError;
+  return isLocked;
+}
+
+export async function resetLoginAttempts(user_id: string) {
+  await supabase.from('users').update({ failed_attempts: 0 }).eq('user_id', user_id);
+}
+
+// --- FILE: app/(tabs)/login-screen.tsx ---
+
+import { isStrongPassword } from '@/utils/validation';
+import { signIn, incrementLoginAttempt, resetLoginAttempts } from '@/utils/api';
+
+const handleLogin = async () => {
+  try {
+    const { user, session, profile } = await signIn(username, password);
+    if (profile.account_status === 'locked') {
+      alert('Account is locked due to multiple failed logins. Please try again later.');
+      return;
+    }
+    await resetLoginAttempts(user.id);
+    // Navigate to dashboard
+  } catch (err) {
+    await incrementLoginAttempt(username);
+    alert('Login failed: ' + err.message);
+  }
+};

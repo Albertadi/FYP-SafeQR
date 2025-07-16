@@ -49,3 +49,4 @@ export default function ScanHistoryScreen() {
   // Show scan history if authenticated
   return <ScanHistoryList />
 }
+
