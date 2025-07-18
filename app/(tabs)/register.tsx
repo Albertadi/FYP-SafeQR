@@ -1,39 +1,52 @@
-// app/(tabs)/index.tsx
-import AuthScreen from '@/components/AuthScreen';
-import HomeScreen from '@/components/HomeScreen';
-import { supabase } from '@/utils/supabase';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import AuthScreen from "@/components/auth/AuthScreen"
+import EditProfileScreen from "@/components/profile/EditProfileScreen"
+import ProfileScreen from "@/components/profile/ProfileScreen"
+import { supabase } from "@/utils/supabase"
+import { useEffect, useState } from "react"
+import { ActivityIndicator, View } from "react-native"
 
-export default function IndexTab() {
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+type ScreenMode = "auth" | "profile" | "editProfile"
+
+export default function RegisterTab() {
+  const [session, setSession] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [screenMode, setScreenMode] = useState<ScreenMode>("auth")
 
   useEffect(() => {
-    // 1) On mount load current session
+    // On mount load current session
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+      setSession(data.session)
+      setScreenMode(data.session ? "profile" : "auth")
+      setLoading(false)
+    })
 
-    // 2) Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => setSession(session)
-    );
-    return () => subscription.unsubscribe();
-  }, []);
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setScreenMode(session ? "profile" : "auth")
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   if (loading) {
     return (
-      <View style={{flex:1,alignItems:'center',justifyContent:'center'}}>
-        <ActivityIndicator size="large"/>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" />
       </View>
-    );
+    )
   }
 
-  // 3) If no session → show login/register
-  if (!session) return <AuthScreen />;
+  // Show different screens based on mode
+  if (screenMode === "editProfile") {
+    return <EditProfileScreen session={session} onBack={() => setScreenMode("profile")} />
+  }
 
-  // 4) If logged in → show home
-  return <HomeScreen session={session} />;
+  if (session && screenMode === "profile") {
+    return <ProfileScreen session={session} onEditProfile={() => setScreenMode("editProfile")} />
+  }
+
+  // Show auth screen if no session
+  return <AuthScreen onDone={() => {}} />
 }

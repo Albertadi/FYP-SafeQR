@@ -1,113 +1,294 @@
-// app/(tabs)/index.tsx
-import { recordScan } from '@/utils/api';
-import { supabase } from '@/utils/supabase';
-import { useIsFocused } from '@react-navigation/native';
-import { Camera, CameraView } from 'expo-camera';
-import React, { useEffect, useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+"use client"
 
+import ScanningOverlay from "@/components/scanner/ScanningOverlay"
+import GetStarted from "@/components/ui/GetStarted"
+import { handleQRScanned, pickImageAndScan } from "@/utils/scanner"
+import { supabase } from "@/utils/supabase"
+
+import { useFocusEffect, useIsFocused } from "@react-navigation/native"
+import { Camera, CameraView } from "expo-camera"
+import { requestMediaLibraryPermissionsAsync } from "expo-image-picker"
+import { useRouter } from "expo-router"
+import React, { useEffect, useState } from "react"
+import { BackHandler, Modal, StyleSheet } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function ScannerScreen() {
-  const [hasPermission, setHasPermission] = useState<boolean|null>(null);
-  const [scanned, setScanned] = useState(false);
-  const isFocused = useIsFocused();
+  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null)
+  const [galleryPermission, setGalleryPermission] = useState<boolean | null>(null)
+  const [scanned, setScanned] = useState(false)
+  const [showLanding, setShowLanding] = useState(true)
+  const [translucent, setTranslucent] = useState(false)
+  const [torchEnabled, setTorchEnabled] = useState(false)
+  const [frameLayout, setFrameLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
 
+  // GetStarted modal states
+  const [session, setSession] = useState<any>(null)
+  const [showGetStartedModal, setShowGetStartedModal] = useState(false)
+  const [authLoading, setAuthLoading] = useState(true)
+
+  const isFocused = useIsFocused()
+  const router = useRouter()
+
+  // Check authentication state on mount
   useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, []);
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      // Show GetStarted modal if no session
+      if (!data.session) {
+        setShowGetStartedModal(true)
+      }
+      setAuthLoading(false)
+    })
 
-  const handleBarCodeScanned =  async ({ type, data }: { type: string; data: string }) => {
-    setScanned(true);
-    alert(`Scanned ${type}: ${data}`);
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      if (session) {
+        // User logged in, hide modal
+        setShowGetStartedModal(false)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
+  /*----------------------------------------------------------------------------
+  Request permissions once when accessing application for the first time or when
+  permissions are revoked
+  ------------------------------------------------------------------------------*/
+  const checkCameraPermission = async () => {
     try {
-      // Get current session for authenticated user
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError || !session?.user?.id) {
-        console.warn('No authenticated user, skipping recordScan');
-        return;
+      const { status } = await Camera.requestCameraPermissionsAsync()
+      if (status !== "granted") {
+        router.replace({ pathname: "/permissionDenied", params: { type: "camera" } }) // Redirect users to custom permission denied pages
       }
-
-      // Insert a new row into qr_scans
-      const payload = {
-        user_id: session.user.id,
-        decoded_content: data,
-        security_status: 'Safe',  // ← PLACEHOLDER SECURITY STATUS
-      };
-
-      try {
-        const inserted = await recordScan(payload);
-        console.log('Scan recorded:', inserted);
-      } catch (insertError) {
-        console.error('Failed to record scan:', insertError);
-      }
-
+      setCameraPermission(status === "granted")
+      return true
     } catch (err) {
-      console.error('Error in handleBarCodeScanned:', err);
+      console.error("Error requesting camera permission:", err)
+      alert("Unable to access the camera. Please try again.") //replace with custom alert
+      return false
     }
-  };
+  }
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      marginBottom: 20,
-    },
-    paragraph: {
-      fontSize: 16,
-      marginBottom: 100,
-    },
-    cameraContainer: {
-      width: '80%',
-      aspectRatio: 1,
-      overflow: 'hidden',
-      borderRadius: 10,
-      marginBottom: 40,
-    },
-    camera: {
-      flex: 1,
-    },
-    button: {
-      backgroundColor: 'blue',
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 5,
-    },
-    buttonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-  });
-  
+  const checkGalleryPermission = async () => {
+    try {
+      const { status } = await requestMediaLibraryPermissionsAsync()
 
-  if (hasPermission === null) return <Text>Requesting camera permission…</Text>;
-  if (hasPermission === false) return <Text>No access to camera</Text>;
+      const granted = status === "granted"
+      setGalleryPermission(granted)
+
+      if (!granted) {
+        router.replace({ pathname: "/permissionDenied", params: { type: "gallery" } })
+      }
+
+      return granted
+    } catch (err) {
+      console.error("Error requesting gallery permission:", err)
+      alert("Unable to access the photo library. Please try again.") // replace with custom alert
+      return false
+    }
+  }
+
+  /*----------------------------------------------------------------------------
+  Resets scanned status to prevent scanner from remaining disabled under these conditions:
+  1) User navigates away from the screen and comes back
+  2) Scanner loses focus during scanning
+  ------------------------------------------------------------------------------*/
+  useEffect(() => {
+    if (!isFocused && scanned) setScanned(false)
+  }, [isFocused]) //re-run useEffect when camera permissions changes between [null, true, false]
+
+  const onGalleryScanComplete = () => {
+    setScanned(false)
+  }
+
+  /*----------------------------------------------------------------------------
+    Return to landing page with Android back button. 
+  ------------------------------------------------------------------------------*/
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (showLanding && translucent) {
+          setTranslucent(false) // Switch from translucent to opaque overlay
+          setTorchEnabled(false) // Ensure torch is turned off
+          return true // Prevent app exit on first press
+        }
+        return false // Allow exit of app on second press
+      }
+      const backButton = BackHandler.addEventListener("hardwareBackPress", onBackPress)
+      return () => backButton.remove()
+    }, [showLanding, translucent]),
+  )
+
+  /*----------------------------------------------------------------------------
+    Torch function
+  ------------------------------------------------------------------------------*/
+  const toggleTorch = () => {
+    setTorchEnabled((prev) => !prev)
+  }
+
+  /*----------------------------------------------------------------------------
+    Page Redirect after scanning QR from camera or gallery
+  ------------------------------------------------------------------------------*/
+  const redirectScans = (
+    result: { status?: string; url?: string } | undefined | null,
+    source: "camera" | "gallery" = "camera",
+  ) => {
+    try {
+      const status = result?.status?.toLowerCase?.()
+      const url = result?.url
+
+      if (!url || !status) {
+        alert("Scan failed or unverified. Please try again.") //replace with custom alert
+        if (source === "camera") setScanned(false)
+        return
+      }
+
+      if (["safe", "malicious", "suspicious"].includes(status)) {
+        router.replace({ pathname: "/scanResult", params: { url, type: status } })
+      } else {
+        console.log("Unknown scan status encountered while redirecting scans: ${status}")
+        alert("Scan failed or unverified. Please try again.") //replace with custom alert
+        if (source === "camera") setScanned(false)
+      }
+    } catch (err) {
+      console.error("Redirect scan error:", err)
+      alert("An unexpected error occurred during redirection. Please try again.") //replace with custom alert
+      if (source === "camera") setScanned(false)
+    }
+  }
+
+  /*----------------------------------------------------------------------------
+    GetStarted Modal Handlers
+  ------------------------------------------------------------------------------*/
+  const handleProceedAsGuest = () => {
+    setShowGetStartedModal(false)
+  }
+
+  /*----------------------------------------------------------------------------
+    Index tab display
+  ------------------------------------------------------------------------------*/
+  // Variable to store layout dimensions and pass values to LandingOverlay so that app can swap between landing page and scanning page
+  const handleFrameLayoutChange = (layout: { x: number; y: number; width: number; height: number }) => {
+    setFrameLayout(layout)
+  }
+
+  // Landing page is loaded only once and shown by default
+  if (showLanding && !translucent) {
+    return (
+      <>
+        <SafeAreaView style={styles.container}>
+          <ScanningOverlay
+            translucent={false}
+            onPressCamera={async () => {
+              const granted = await checkCameraPermission()
+              if (!granted) return
+
+              setTranslucent(true)
+              setShowLanding(true)
+            }}
+            onFrameLayoutChange={handleFrameLayoutChange} // Pass layout dimensions used for translucent layout to LandingOverlay.tsx
+            onPressGallery={async () => {
+              // Calls functions from scanner.ts to handle scans from gallery. After scan, prepare for next QR scan
+              const granted = await checkGalleryPermission()
+              if (!granted) return
+
+              try {
+                const result = await pickImageAndScan(handleQRScanned)
+                redirectScans(result, "gallery")
+              } catch (err) {
+                console.error("Gallery scan error:", err)
+                alert("An unexpected error occurred. Please try again.") //replace with custom alert
+              } finally {
+                onGalleryScanComplete()
+              }
+            }}
+          />
+        </SafeAreaView>
+
+        {/* Get Started Modal */}
+        <Modal visible={showGetStartedModal} animationType="slide" presentationStyle="pageSheet">
+          <GetStarted onProceedAsGuest={handleProceedAsGuest} />
+        </Modal>
+      </>
+    )
+  }
 
   return (
-    <View style={styles.container}>
-      {isFocused && (
-        <CameraView
-          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={StyleSheet.absoluteFillObject}
-        />
-      )}
-      {scanned && (
-        <Button title="Tap to Scan Again" onPress={() => setScanned(false)} />
-      )}
-    </View>
-  );
+    <>
+      {/* Loads a live camera view */}
+      <SafeAreaView style={styles.container}>
+        {isFocused && (
+          <CameraView
+            style={StyleSheet.absoluteFillObject}
+            onBarcodeScanned={
+              scanned
+                ? undefined
+                : async ({ type, data }) => {
+                    setScanned(true) // Prevents camera from non-stop scanning while loading next screen
+                    try {
+                      const result = await handleQRScanned({ type, data })
+                      redirectScans(result, "camera")
+                    } catch (err) {
+                      console.error("Live camera scan error:", err)
+                      alert("An unexpected error occurred. Please try again.") //replace with custom alert
+                    }
+                  }
+            }
+            barcodeScannerSettings={{ barcodeTypes: ["qr"] }} // Read only QR codes
+            enableTorch={torchEnabled ? true : false} // Adds torch function if user's environment is too dark
+          />
+        )}
+
+        {showLanding &&
+          translucent && ( // Loads a translucent overlay on top of live camera view. Used to ensure visibility for all other elements on screen.
+            <ScanningOverlay
+              translucent={true}
+              frameLayout={frameLayout} // Pass measured frameLayout for live camera cutout
+              torchEnabled={torchEnabled}
+              onPressCamera={async () => {
+                // Resets everything to default values
+                const granted = await checkCameraPermission()
+                if (!granted) return
+
+                setShowLanding(false)
+                setTranslucent(false)
+                setTorchEnabled(false)
+              }}
+              onToggleFlashlight={toggleTorch} // Toggles torch added in camera view
+              onPressGallery={async () => {
+                // Calls functions from scanner.ts to handle scans from gallery. After scan, prepare for next QR scan
+                const granted = await checkGalleryPermission()
+                if (!granted) return
+                try {
+                  const result = await pickImageAndScan(handleQRScanned)
+                  redirectScans(result, "gallery")
+                } catch (err) {
+                  console.error("Gallery scan error:", err)
+                  alert("An unexpected error occurred. Please try again.") //replace with custom alert
+                } finally {
+                  onGalleryScanComplete()
+                }
+              }}
+            />
+          )}
+      </SafeAreaView>
+
+      {/* Get Started Modal */}
+      <Modal visible={showGetStartedModal} animationType="slide" presentationStyle="pageSheet">
+        <GetStarted onProceedAsGuest={handleProceedAsGuest} />
+      </Modal>
+    </>
+  )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+})
