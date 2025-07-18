@@ -4,14 +4,12 @@ import ScanningOverlay from "@/components/scanner/ScanningOverlay"
 import GetStarted from "@/components/ui/GetStarted"
 import { handleQRScanned, pickImageAndScan } from "@/utils/scanner"
 import { supabase } from "@/utils/supabase"
-
 import { useFocusEffect, useIsFocused } from "@react-navigation/native"
 import { Camera, CameraView } from "expo-camera"
 import { requestMediaLibraryPermissionsAsync } from "expo-image-picker"
 import { useRouter } from "expo-router"
 import React, { useEffect, useState } from "react"
-import { BackHandler, Modal, StyleSheet } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
+import { BackHandler, Modal, SafeAreaView, StyleSheet } from "react-native"
 
 export default function ScannerScreen() {
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null)
@@ -55,14 +53,16 @@ export default function ScannerScreen() {
   }, [])
 
   /*----------------------------------------------------------------------------
-  Request permissions once when accessing application for the first time or when
-  permissions are revoked
-  ------------------------------------------------------------------------------*/
+Request permissions once when accessing application for the first time or when
+permissions are revoked
+------------------------------------------------------------------------------*/
   const checkCameraPermission = async () => {
     try {
       const { status } = await Camera.requestCameraPermissionsAsync()
       if (status !== "granted") {
-        router.replace({ pathname: "/permissionDenied", params: { type: "camera" } }) // Redirect users to custom permission denied pages
+        setTimeout(() => {
+          router.replace({ pathname: "/permissionDenied", params: { type: "camera" } }) // Redirect users to custom permission denied pages
+        }, 0)
       }
       setCameraPermission(status === "granted")
       return true
@@ -81,7 +81,9 @@ export default function ScannerScreen() {
       setGalleryPermission(granted)
 
       if (!granted) {
-        router.replace({ pathname: "/permissionDenied", params: { type: "gallery" } })
+        setTimeout(() => {
+          router.replace({ pathname: "/permissionDenied", params: { type: "gallery" } })
+        }, 0)
       }
 
       return granted
@@ -93,10 +95,10 @@ export default function ScannerScreen() {
   }
 
   /*----------------------------------------------------------------------------
-  Resets scanned status to prevent scanner from remaining disabled under these conditions:
-  1) User navigates away from the screen and comes back
-  2) Scanner loses focus during scanning
-  ------------------------------------------------------------------------------*/
+Resets scanned status to prevent scanner from remaining disabled under these conditions:
+1) User navigates away from the screen and comes back
+2) Scanner loses focus during scanning
+------------------------------------------------------------------------------*/
   useEffect(() => {
     if (!isFocused && scanned) setScanned(false)
   }, [isFocused]) //re-run useEffect when camera permissions changes between [null, true, false]
@@ -106,8 +108,8 @@ export default function ScannerScreen() {
   }
 
   /*----------------------------------------------------------------------------
-    Return to landing page with Android back button. 
-  ------------------------------------------------------------------------------*/
+Return to landing page with Android back button. 
+------------------------------------------------------------------------------*/
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
@@ -124,33 +126,48 @@ export default function ScannerScreen() {
   )
 
   /*----------------------------------------------------------------------------
-    Torch function
-  ------------------------------------------------------------------------------*/
+Torch function
+------------------------------------------------------------------------------*/
   const toggleTorch = () => {
     setTorchEnabled((prev) => !prev)
   }
 
   /*----------------------------------------------------------------------------
-    Page Redirect after scanning QR from camera or gallery
-  ------------------------------------------------------------------------------*/
+Page Redirect after scanning QR from camera or gallery
+------------------------------------------------------------------------------*/
   const redirectScans = (
-    result: { status?: string; url?: string } | undefined | null,
+    result: { status?: string; originalContent?: string; contentType?: string; parsedData?: any } | undefined | null,
     source: "camera" | "gallery" = "camera",
   ) => {
     try {
       const status = result?.status?.toLowerCase?.()
-      const url = result?.url
+      const originalContent = result?.originalContent // Corrected to use originalContent
+      const contentType = result?.contentType
+      const parsedData = result?.parsedData
 
-      if (!url || !status) {
+      if (!originalContent || !status || !contentType || !parsedData) {
+        console.error("Missing data in scan result:", { result }) // Added detailed logging
         alert("Scan failed or unverified. Please try again.") //replace with custom alert
         if (source === "camera") setScanned(false)
         return
       }
 
       if (["safe", "malicious", "suspicious"].includes(status)) {
-        router.replace({ pathname: "/scanResult", params: { url, type: status } })
+        // Stringify parsedData to pass as a URL parameter
+        const parsedDataString = JSON.stringify(parsedData)
+        setTimeout(() => {
+          router.replace({
+            pathname: "/scanResult",
+            params: {
+              originalContent, // Pass originalContent
+              type: status,
+              contentType,
+              parsedData: parsedDataString, // Pass stringified data
+            },
+          })
+        }, 0)
       } else {
-        console.log("Unknown scan status encountered while redirecting scans: ${status}")
+        console.log(`Unknown scan status encountered while redirecting scans: ${status}`)
         alert("Scan failed or unverified. Please try again.") //replace with custom alert
         if (source === "camera") setScanned(false)
       }
@@ -162,15 +179,15 @@ export default function ScannerScreen() {
   }
 
   /*----------------------------------------------------------------------------
-    GetStarted Modal Handlers
-  ------------------------------------------------------------------------------*/
+GetStarted Modal Handlers
+------------------------------------------------------------------------------*/
   const handleProceedAsGuest = () => {
     setShowGetStartedModal(false)
   }
 
   /*----------------------------------------------------------------------------
-    Index tab display
-  ------------------------------------------------------------------------------*/
+Index tab display
+------------------------------------------------------------------------------*/
   // Variable to store layout dimensions and pass values to LandingOverlay so that app can swap between landing page and scanning page
   const handleFrameLayoutChange = (layout: { x: number; y: number; width: number; height: number }) => {
     setFrameLayout(layout)
@@ -227,10 +244,14 @@ export default function ScannerScreen() {
             onBarcodeScanned={
               scanned
                 ? undefined
-                : async ({ type, data }) => {
+                : async (event) => {
+                    // Changed to receive the full event object
                     setScanned(true) // Prevents camera from non-stop scanning while loading next screen
+                    // Check for 'raw' property, which seems to contain the unparsed string
+                    const rawContent = event.raw || event.data // Use raw if available, otherwise fallback to data
+
                     try {
-                      const result = await handleQRScanned({ type, data })
+                      const result = await handleQRScanned({ type: event.type, data: rawContent }) // Pass rawContent
                       redirectScans(result, "camera")
                     } catch (err) {
                       console.error("Live camera scan error:", err)
