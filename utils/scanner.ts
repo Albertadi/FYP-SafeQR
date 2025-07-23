@@ -1,5 +1,5 @@
 // utils/scanner.ts
-import { recordScan } from "./api"
+import { recordScan } from "@/controllers/scanController"
 import { supabase } from "./supabase"
 
 import { Camera } from "expo-camera"

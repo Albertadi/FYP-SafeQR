@@ -30,14 +30,30 @@ export default function ScannerScreen() {
 
   // Check authentication state on mount
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
+    const checkAuth = async () => {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        console.error("Error getting Supabase session in ScannerScreen:", sessionError.message)
+        // If there's an error and no session, it means the session is truly invalid.
+        // Force a sign out to clear any lingering invalid state.
+        if (!session) {
+          await supabase.auth.signOut() // This will clear local storage and trigger onAuthStateChange
+        }
+      }
+
+      setSession(session)
       // Show GetStarted modal if no session
-      if (!data.session) {
+      if (!session) {
         setShowGetStartedModal(true)
       }
       setAuthLoading(false)
-    })
+    }
+
+    checkAuth()
 
     // Listen for auth changes
     const {
