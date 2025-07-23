@@ -1,11 +1,11 @@
 "use client"
 
 // app/scanResults.tsx
-import ResultTemplate from "@/components/scanner/Results"
+import ResultTemplate from "@/components/scanner/Results";
 import type { ParsedQRContent, QRContentType } from "@/utils/qrParser"; // Import parseQrContent and types
 
-import { useLocalSearchParams, useRouter } from "expo-router"
-import { useEffect, useState } from "react"
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { Alert, Linking } from "react-native"; // Corrected import for Alert
 
 export default function ScanResultScreen() {
@@ -74,30 +74,15 @@ export default function ScanResultScreen() {
         break
       case "sms":
         const smsUrl = `sms:${parsedContentData.number}${parsedContentData.body ? `?body=${encodeURIComponent(parsedContentData.body)}` : ""}`
-        const supportedSms = await Linking.canOpenURL(smsUrl)
-        if (supportedSms) {
-          await Linking.openURL(smsUrl)
-        } else {
-          Alert.alert("Error", "Cannot open SMS app.")
-        }
+        await Linking.openURL(smsUrl)
         break
       case "tel":
         const telUrl = `tel:${parsedContentData.number}`
-        const supportedTel = await Linking.canOpenURL(telUrl)
-        if (supportedTel) {
-          await Linking.openURL(telUrl)
-        } else {
-          Alert.alert("Error", "Cannot open phone app.")
-        }
+        await Linking.openURL(telUrl)
         break
       case "mailto":
         const mailtoUrl = `mailto:${parsedContentData.email}${parsedContentData.subject ? `?subject=${encodeURIComponent(parsedContentData.subject)}` : ""}${parsedContentData.body ? `${parsedContentData.subject ? "&" : "?"}body=${encodeURIComponent(parsedContentData.body)}` : ""}`
-        const supportedMailto = await Linking.canOpenURL(mailtoUrl)
-        if (supportedMailto) {
-          await Linking.openURL(mailtoUrl)
-        } else {
-          Alert.alert("Error", "Cannot open email app.")
-        }
+        await Linking.openURL(mailtoUrl)
         break
       case "wifi":
         // For Wi-Fi, provide details as Linking.openURL doesn't directly connect to Wi-Fi networks

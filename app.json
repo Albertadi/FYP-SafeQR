@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/branding/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.FYPSafeQR"
     },
     "web": {
       "bundler": "metro",
@@ -28,10 +29,39 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/branding/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "manifest": {
+              "queries": [
+                {
+                  "intent": {
+                    "action": "android.intent.action.VIEW",
+                    "data": { "scheme": "sms" }
+                  }
+                },
+                {
+                  "intent": {
+                    "action": "android.intent.action.DIAL",
+                    "data": { "scheme": "tel" }
+                  }
+                },
+                {
+                  "intent": {
+                    "action": "android.intent.action.SENDTO",
+                    "data": { "scheme": "mailto" }
+                  }
+                }
+              ]
+            }
+          }
         }
       ]
     ],
