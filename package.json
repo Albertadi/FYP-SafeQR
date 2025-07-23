@@ -17,6 +17,7 @@
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "@supabase/supabase-js": "^2.49.5-next.1",
+    "all": "^0.0.0",
     "expo": "~53.0.9",
     "expo-barcode-scanner": "^13.0.1",
     "expo-blur": "~14.1.4",
