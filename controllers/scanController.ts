@@ -5,7 +5,12 @@ import { Camera } from "expo-camera"
 import { launchImageLibraryAsync } from "expo-image-picker"
 
 export type ScanResult =
-  | { status: string; originalContent: string; contentType: QRContentType; parsedData: ParsedQRContent["data"] }
+  | { 
+    status: string; 
+    originalContent: string; 
+    contentType: QRContentType; 
+    parsedData: ParsedQRContent["data"];
+    scan_id?: string}
   | undefined
 
 export interface QRScan {
@@ -25,6 +30,17 @@ export async function recordScan(
   payload: Pick<QRScan, "user_id" | "decoded_content" | "security_status" | "content_type">, // Updated payload type
 ): Promise<QRScan> {
   const { data, error } = await supabase.from("qr_scans").insert([payload]).select().single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getScanByID(scan_id: string): Promise<QRScan> {
+  const { data, error } = await supabase
+  .from("qr_scans")
+  .select("*")
+  .eq("scan_id", scan_id)
+  .single()
 
   if (error) throw error
   return data
@@ -82,6 +98,7 @@ export async function handleQRScanned({ type, data }: { type: string; data: stri
         originalContent: trimmedData, // Changed from url to originalContent
         contentType: parsedContent.contentType,
         parsedData: parsedContent.data,
+        scan_id: undefined,
       }
     }
 
@@ -101,6 +118,7 @@ export async function handleQRScanned({ type, data }: { type: string; data: stri
         originalContent: trimmedData,
         contentType: parsedContent.contentType,
         parsedData: parsedContent.data,
+        scan_id: inserted.scan_id
       }
     } catch (insertError) {
       console.error("Failed to record scan:", insertError)
@@ -110,6 +128,7 @@ export async function handleQRScanned({ type, data }: { type: string; data: stri
         originalContent: trimmedData,
         contentType: parsedContent.contentType,
         parsedData: parsedContent.data,
+        scan_id: undefined,
       }
     }
   } catch (err) {
@@ -153,3 +172,26 @@ export async function pickImageAndScan(
     }
   }
 }
+
+// -------------------------------
+// Webpage APIs
+// -------------------------------
+
+export async function fetchSanitizedHTML(url: string): Promise<string> {
+  try {
+    const res = await fetch("https://piixwjacgfuymsdixbiw.supabase.co/functions/v1/sanitize-webpage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Fetch failed with status ${res.status}: ${errorText}`);
+    }
+    return await res.text();
+  } catch (error) {
+    console.error("Error fetching sanitized HTML:", error);
+    throw error;
+  }
+}
+

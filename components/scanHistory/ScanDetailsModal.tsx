@@ -6,6 +6,7 @@ import type { QRScan } from "@/controllers/scanController"
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { parseQrContent, type ParsedQRContent, type QRContentType } from "@/utils/qrParser"; // Import parseQrContent and types
 import * as Clipboard from "expo-clipboard"
+import { useRouter } from "expo-router"
 import { useEffect, useState } from "react"
 import { Alert, Linking, Modal, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
@@ -22,6 +23,7 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
   const rawScheme = useColorScheme()
   const scheme = rawScheme || "light"
   const colors = Colors[scheme]
+  const router = useRouter()
 
   const [loading, setLoading] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
@@ -37,6 +39,7 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
   }, [scan])
 
   if (!scan || !parsedContentData) return null
+
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
@@ -114,10 +117,15 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
     }
   }
 
-  const getActionButtonText = (type: QRContentType) => {
+  const getActionButtonText = (type: QRContentType, securityStatus?: string) => {
     switch (type) {
       case "url":
-        return "Open Link"
+        if (securityStatus?.toLowerCase() === "malicious") {
+          return "Open in Sandbox"
+        }
+        else {
+          return "Open Link"
+        }
       case "sms":
         return "Send SMS"
       case "tel":
@@ -139,7 +147,15 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
     try {
       switch (scan.content_type) {
         case "url":
-          await Linking.openURL(scan.decoded_content)
+          if (scan.security_status?.toLowerCase() === "malicious") {
+            router.push({
+              pathname: "/sandboxPreview",
+              params: { url: scan.decoded_content },
+            });
+          }
+          else {
+            await Linking.openURL(scan.decoded_content)
+          }
           break
         case "sms":
           const smsUrl = `sms:${parsedContentData.number}${parsedContentData.body ? `?body=${encodeURIComponent(parsedContentData.body)}` : ""}`
@@ -254,7 +270,7 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
                 onPress={handlePerformAction}
               >
                 <Text style={[styles.actionButtonText, { color: "#fff" }]}>
-                  {getActionButtonText(scan.content_type)}
+                  {getActionButtonText(scan.content_type, scan.security_status)}
                 </Text>
               </TouchableOpacity>
 
@@ -267,6 +283,10 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
                 onPress={() => setShowReportModal(true)}
               >
                 <Text style={[styles.actionButtonText, { color: "#fff" }]}>Report Scan</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={onClose}>
+                <Text style={[styles.actionButtonText, { color: "#fff" }]}>Back to Scan History</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

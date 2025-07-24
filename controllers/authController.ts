@@ -19,6 +19,7 @@ export async function register(email: string, password: string, username: string
       data: {
         full_name: fullName || "",
       },
+      emailRedirectTo: "fypsafeqr://authcallback",
     },
   })
 
@@ -66,7 +67,7 @@ export async function signIn(email: string, password: string) {
  */
 export async function sendPasswordResetEmail(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`, // This would be your app's deep link in production
+      redirectTo: "fypsafeqr://resetpassword", 
     })
     if (error) throw error
   }

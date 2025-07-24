@@ -1,5 +1,6 @@
 "use client"
 
+import ReportHistoryScreen from "@/components/profile/ReportHistoryScreen"
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
 import { signOut } from "@/controllers/authController"
@@ -7,7 +8,7 @@ import { getUserProfile, type UserProfile } from "@/controllers/userProfileContr
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { router } from "expo-router"
 import { useEffect, useState } from "react"
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 interface ProfileScreenProps {
@@ -25,6 +26,7 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState(false)
+  const [showReportHistory, setReportHistory] = useState(false)
 
   // Fetch user profile from public users table
   useEffect(() => {
@@ -74,11 +76,37 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
         style: "destructive",
         onPress: () => {
           // TODO: Implement account deletion
-          Alert.alert("Feature Coming Soon", "Account deletion will be available in a future update.")
+          Alert.alert("Delete Account Request sent", "Account deletion will be available in a future update.")
         },
       },
     ])
   }
+
+  const handleSupport = () => {
+  const supportEmail = "fypsafeqr@gmail.com"
+  Alert.alert(
+    "Contact Support",
+    `You can contact the development team by emailing: ${supportEmail}`,
+    [
+      { text: "OK", style: "cancel" },
+      {
+        text: "Email Team",
+        onPress: () => {
+          const mailtoUrl = `mailto:${supportEmail}`
+          Linking.canOpenURL(mailtoUrl)
+            .then((supported) => {
+              if (!supported) {
+                Alert.alert("Error", `Unable to open email client, please send an email to us manually at ${supportEmail}.`)
+              } else {
+                return Linking.openURL(mailtoUrl)
+              }
+            })
+            .catch(() => Alert.alert("Error", "An unexpected error occurred"))
+        },
+      },
+    ]
+  )
+}
 
   const handleRetry = () => {
     setProfileLoading(true)
@@ -136,7 +164,7 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
         {/* Error Content */}
         <View style={styles.errorContainer}>
-          <IconSymbol name="person.crop.circle.badge.exclamationmark" size={64} color={colors.secondaryText} />
+          <IconSymbol name="person.crop.circle" size={64} color={colors.secondaryText} />
           <Text style={[styles.errorTitle, { color: colors.text }]}>Profile Not Found</Text>
           <Text style={[styles.errorMessage, { color: colors.secondaryText }]}>
             We couldn't find your user profile. This might be a temporary issue.
@@ -161,6 +189,14 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+    )
+  }
+
+  if (showReportHistory) {
+    return (
+      <ReportHistoryScreen
+        onBack={() => setReportHistory(false)}
+      />
     )
   }
 
@@ -240,10 +276,10 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: colors.background }]}
-            onPress={() => handlePlaceholderAction("Report Details Form")}
+            onPress={() => setReportHistory(true)}
           >
-            <IconSymbol name="gear" size={20} color={colors.text} />
-            <Text style={[styles.menuText, { color: colors.text }]}>Report Details Form</Text>
+            <IconSymbol name="exclamationmark.octagon.fill" size={20} color={colors.text} />
+            <Text style={[styles.menuText, { color: colors.text }]}>View All Reports</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.secondaryText} />
           </TouchableOpacity>
 
@@ -263,7 +299,7 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: colors.background }]}
-            onPress={() => handlePlaceholderAction("Support")}
+            onPress={handleSupport}
           >
             <IconSymbol name="info.circle" size={20} color={colors.text} />
             <Text style={[styles.menuText, { color: colors.text }]}>Support</Text>

@@ -2,7 +2,7 @@
 
 import ScanningOverlay from "@/components/scanner/ScanningOverlay"
 import GetStarted from "@/components/ui/GetStarted"
-import { handleQRScanned, pickImageAndScan } from "@/utils/scanner"
+import { handleQRScanned, pickImageAndScan } from "@/controllers/scanController"
 import { supabase } from "@/utils/supabase"
 import { useFocusEffect, useIsFocused } from "@react-navigation/native"
 import { Camera, CameraView } from "expo-camera"
@@ -152,7 +152,7 @@ Torch function
 Page Redirect after scanning QR from camera or gallery
 ------------------------------------------------------------------------------*/
   const redirectScans = (
-    result: { status?: string; originalContent?: string; contentType?: string; parsedData?: any } | undefined | null,
+    result: { status?: string; originalContent?: string; contentType?: string; scan_id?: string; parsedData?: any } | undefined | null,
     source: "camera" | "gallery" = "camera",
   ) => {
     try {
@@ -160,6 +160,7 @@ Page Redirect after scanning QR from camera or gallery
       const originalContent = result?.originalContent // Corrected to use originalContent
       const contentType = result?.contentType
       const parsedData = result?.parsedData
+      const scan_id = result?.scan_id
 
       if (!originalContent || !status || !contentType || !parsedData) {
         console.error("Missing data in scan result:", { result }) // Added detailed logging
@@ -179,6 +180,7 @@ Page Redirect after scanning QR from camera or gallery
               type: status,
               contentType,
               parsedData: parsedDataString, // Pass stringified data
+              scan_id,
             },
           })
         }, 0)
