@@ -23,8 +23,8 @@ export default function AuthCallbackScreen() {
         Alert.alert("Login failed", error.message)
         router.replace("/(tabs)/register")
       } else {
-        // Redirect to home page or wherever appropriate
-        router.replace("/")
+        // Redirect to home page
+        router.replace("/(tabs)/register")
       }
     }
 
