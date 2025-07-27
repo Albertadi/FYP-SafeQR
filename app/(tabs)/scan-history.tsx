@@ -49,20 +49,3 @@ export default function ScanHistoryScreen() {
   // Show scan history if authenticated
   return <ScanHistoryList />
 }
-
-var history: History
-
-const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
-const [ascending, setAscending] = useState(true);
-
-const sortedHistory = [...history].sort((a, b) => {
-  if (sortBy === 'date') {
-    return ascending
-      ? new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
-      : new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime();
-  } else {
-    return ascending
-      ? a.decoded_content.localeCompare(b.decoded_content)
-      : b.decoded_content.localeCompare(a.decoded_content);
-  }
-});
