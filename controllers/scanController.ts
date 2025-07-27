@@ -70,7 +70,7 @@ export async function handleQRScanned({ type, data }: { type: string; data: stri
     const parsedContent = parseQrContent(trimmedData) // Use the new parser
 
     // 2. Determine security status
-    let securityStatus: "Safe" | "Malicious" | "Suspicious"
+   let securityStatus: "Safe" | "Malicious" | "Suspicious"
     if (parsedContent.contentType === "url") {
       securityStatus = await checkUrlSafety(parsedContent.data.url)
     } else {
