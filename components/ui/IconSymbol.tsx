@@ -19,6 +19,7 @@ const MAPPING = {
   "person.crop.circle": "account-circle",
   "clock.fill": "history",
   "qrcode.viewfinder": "qr-code-scanner",
+  "exclamationmark.octagon.fill": "report",
   magnifyingglass: "search",
   xmark: "close",
   "xmark.circle.fill": "cancel",

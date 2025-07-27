@@ -7,8 +7,9 @@ import { getScanHistory, type QRScan } from "@/controllers/scanController"
 import { useColorScheme } from "@/hooks/useColorScheme"
 import type { QRContentType } from "@/utils/qrParser"
 import { supabase } from "@/utils/supabase"
+import * as Clipboard from "expo-clipboard"
 import { useEffect, useMemo, useState } from "react"
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function ScanHistoryList() {
@@ -128,6 +129,16 @@ export default function ScanHistoryList() {
     setShowScanDetails(true)
   }
 
+  const handleCopy = async (content: string) => {
+      try {
+        await Clipboard.setStringAsync(content)
+        Alert.alert("Copied", "URL copied to clipboard")
+      } catch (error) {
+        Alert.alert("Error", "Failed to copy URL")
+      }
+    }
+
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -189,9 +200,14 @@ export default function ScanHistoryList() {
                 style={[styles.card, { backgroundColor: colors.cardBackground }]}
                 onPress={() => handleScanPress(item)}
               >
-                <View style={styles.iconContainer}>
+                <TouchableOpacity
+  style={styles.iconContainer}
+  onPress={() => handleCopy(item.decoded_content)} // Or whichever content you want to copy
+  activeOpacity={0.7}
+>
+
                   <IconSymbol name={getScanTypeIcon(item.content_type)} size={24} color={colors.text} />
-                </View>
+                </TouchableOpacity>
                 <View style={styles.contentContainer}>
                   <Text style={[styles.urlLabel, { color: colors.secondaryText }]}>
                     {getScanTypeDisplayName(item.content_type)}:
