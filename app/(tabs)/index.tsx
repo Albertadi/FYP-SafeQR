@@ -2,7 +2,7 @@
 
 import ScanningOverlay from "@/components/scanner/ScanningOverlay"
 import GetStarted from "@/components/ui/GetStarted"
-import { handleQRScanned, pickImageAndScan } from "@/utils/scanner"
+import { handleQRScanned, pickImageAndScan } from "@/controllers/scanController"
 import { supabase } from "@/utils/supabase"
 import { useFocusEffect, useIsFocused } from "@react-navigation/native"
 import { Camera, CameraView } from "expo-camera"
@@ -30,14 +30,30 @@ export default function ScannerScreen() {
 
   // Check authentication state on mount
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
+    const checkAuth = async () => {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        console.error("Error getting Supabase session in ScannerScreen:", sessionError.message)
+        // If there's an error and no session, it means the session is truly invalid.
+        // Force a sign out to clear any lingering invalid state.
+        if (!session) {
+          await supabase.auth.signOut() // This will clear local storage and trigger onAuthStateChange
+        }
+      }
+
+      setSession(session)
       // Show GetStarted modal if no session
-      if (!data.session) {
+      if (!session) {
         setShowGetStartedModal(true)
       }
       setAuthLoading(false)
-    })
+    }
+
+    checkAuth()
 
     // Listen for auth changes
     const {
@@ -136,7 +152,7 @@ Torch function
 Page Redirect after scanning QR from camera or gallery
 ------------------------------------------------------------------------------*/
   const redirectScans = (
-    result: { status?: string; originalContent?: string; contentType?: string; parsedData?: any } | undefined | null,
+    result: { status?: string; originalContent?: string; contentType?: string; scan_id?: string; parsedData?: any } | undefined | null,
     source: "camera" | "gallery" = "camera",
   ) => {
     try {
@@ -144,6 +160,7 @@ Page Redirect after scanning QR from camera or gallery
       const originalContent = result?.originalContent // Corrected to use originalContent
       const contentType = result?.contentType
       const parsedData = result?.parsedData
+      const scan_id = result?.scan_id
 
       if (!originalContent || !status || !contentType || !parsedData) {
         console.error("Missing data in scan result:", { result }) // Added detailed logging
@@ -163,6 +180,7 @@ Page Redirect after scanning QR from camera or gallery
               type: status,
               contentType,
               parsedData: parsedDataString, // Pass stringified data
+              scan_id,
             },
           })
         }, 0)
