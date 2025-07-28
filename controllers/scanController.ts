@@ -5,12 +5,13 @@ import { Camera } from "expo-camera"
 import { launchImageLibraryAsync } from "expo-image-picker"
 
 export type ScanResult =
-  | { 
-    status: string; 
-    originalContent: string; 
-    contentType: QRContentType; 
+  | {
+    status: string;
+    originalContent: string;
+    contentType: QRContentType;
     parsedData: ParsedQRContent["data"];
-    scan_id?: string}
+    scan_id?: string
+  }
   | undefined
 
 export interface QRScan {
@@ -37,10 +38,10 @@ export async function recordScan(
 
 export async function getScanByID(scan_id: string): Promise<QRScan> {
   const { data, error } = await supabase
-  .from("qr_scans")
-  .select("*")
-  .eq("scan_id", scan_id)
-  .single()
+    .from("qr_scans")
+    .select("*")
+    .eq("scan_id", scan_id)
+    .single()
 
   if (error) throw error
   return data
@@ -70,7 +71,7 @@ export async function handleQRScanned({ type, data }: { type: string; data: stri
     const parsedContent = parseQrContent(trimmedData) // Use the new parser
 
     // 2. Determine security status
-   let securityStatus: "Safe" | "Malicious" | "Suspicious"
+    let securityStatus: "Safe" | "Malicious" | "Suspicious"
     if (parsedContent.contentType === "url") {
       securityStatus = await checkUrlSafety(parsedContent.data.url)
     } else {
