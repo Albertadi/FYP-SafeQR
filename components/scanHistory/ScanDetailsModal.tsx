@@ -189,15 +189,15 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
   }
 
   const handleCopyText = async () => {
-      console.log("Copying:", scan.decoded_content)
-      try {
-        await Clipboard.setStringAsync(scan.decoded_content)
-        Alert.alert("Copied", "Content copied to clipboard!")
-      } catch (error) {
-        Alert.alert("Error", "Failed to copy content.")
-      }
+    console.log("Copying:", scan.decoded_content)
+    try {
+      await Clipboard.setStringAsync(scan.decoded_content)
+      Alert.alert("Copied", "Content copied to clipboard!")
+    } catch (error) {
+      Alert.alert("Error", "Failed to copy content.")
     }
-  
+  }
+
 
   const handleShareLink = async () => {
     try {
@@ -276,41 +276,41 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
 
             {/* Action Buttons */}
             <View style={styles.buttonsSection}>
-  {scan.security_status.toLowerCase() === "safe" ? (
-    <>
-      <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={handleCopyText}>
-        <Text style={[styles.actionButtonText, { color: "#fff" }]}>Copy URL</Text>
-      </TouchableOpacity>
+              {scan.security_status.toLowerCase() === "safe" ? (
+                <>
+                  <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={handleCopyText}>
+                    <Text style={[styles.actionButtonText, { color: "#fff" }]}>Copy URL</Text>
+                  </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={handleShareLink}>
-        <Text style={[styles.actionButtonText, { color: "#fff" }]}>Share URL</Text>
-      </TouchableOpacity>
+                  <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={handleShareLink}>
+                    <Text style={[styles.actionButtonText, { color: "#fff" }]}>Share URL</Text>
+                  </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={handlePerformAction}>
-        <Text style={[styles.actionButtonText, { color: "#fff" }]}>Open Link</Text>
-      </TouchableOpacity>
+                  <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={handlePerformAction}>
+                    <Text style={[styles.actionButtonText, { color: "#fff" }]}>Open Link</Text>
+                  </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.reportButton, { backgroundColor: "#F44336" }]} onPress={() => setShowReportModal(true)}>
-        <Text style={[styles.actionButtonText, { color: "#fff" }]}>Report Scan</Text>
-      </TouchableOpacity>
+                  <TouchableOpacity style={[styles.reportButton, { backgroundColor: "#F44336" }]} onPress={() => setShowReportModal(true)}>
+                    <Text style={[styles.actionButtonText, { color: "#fff" }]}>Report Scan</Text>
+                  </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={onClose}>
-        <Text style={[styles.actionButtonText, { color: "#fff" }]}>Back to Scan</Text>
-      </TouchableOpacity>
-    </>
-  ) : (
-    <>
-      <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#F44336" }]} onPress={handlePerformAction}>
-        <Text style={[styles.actionButtonText, { color: "#fff" }]}>Open in Sandbox</Text>
-      </TouchableOpacity>
+                  <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={onClose}>
+                    <Text style={[styles.actionButtonText, { color: "#fff" }]}>Back to Scan</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#F44336" }]} onPress={handlePerformAction}>
+                    <Text style={[styles.actionButtonText, { color: "#fff" }]}>Open in Sandbox</Text>
+                  </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={onClose}>
-        <Text style={[styles.actionButtonText, { color: "#fff" }]}>Back to Scan History</Text>
-      </TouchableOpacity>
-    </>
-  )}
-</View>
-           
+                  <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={onClose}>
+                    <Text style={[styles.actionButtonText, { color: "#fff" }]}>Back to Scan History</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+
           </ScrollView>
         </SafeAreaView>
       </Modal>

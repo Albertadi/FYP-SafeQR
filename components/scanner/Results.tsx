@@ -183,13 +183,13 @@ export default function ResultTemplate({
                   <Text style={styles.menuItemText}>Share Content</Text>
                 </TouchableOpacity>
                 {onReport && (
-  <TouchableOpacity onPress={() => {
-    closeMenu()
-    onReport?.()
-  }} style={styles.menuItem}>
-    <Text style={[styles.menuItemText, { color: "#e74c3c" }]}>Report Content</Text>
-  </TouchableOpacity>
-)}
+                  <TouchableOpacity onPress={() => {
+                    closeMenu()
+                    onReport?.()
+                  }} style={styles.menuItem}>
+                    <Text style={[styles.menuItemText, { color: "#e74c3c" }]}>Report Content</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}
