@@ -1,6 +1,6 @@
 "use client"
 
-import { Tabs } from "expo-router"
+import { Tabs, useRouter } from "expo-router"
 import { useEffect, useState } from "react"
 import { Alert, Platform } from "react-native"
 
@@ -14,6 +14,7 @@ import { useColorScheme } from "@/hooks/useColorScheme"
 export default function TabLayout() {
   const colorScheme = useColorScheme()
   const [session, setSession] = useState<any>(null)
+  const router = useRouter()
 
   useEffect(() => {
     // Get initial session
@@ -26,6 +27,12 @@ export default function TabLayout() {
 
     // Listen for auth changes
     const { data } = onAuthStateChange((_event, session) => {
+      if (_event === "PASSWORD_RECOVERY") {
+        console.log("Navigating to password reset screen...")
+        router.replace("/reset-password")
+        return
+      }
+
       if (!session && lastSignOutDueToSuspension) {
         const untilDate = lastSuspensionEndDate
           ? ` until ${new Date(lastSuspensionEndDate).toLocaleString()}`
@@ -40,48 +47,48 @@ export default function TabLayout() {
       setSession(session)
     })
 
-  return () => data.subscription.unsubscribe()
-}, [])
+    return () => data.subscription.unsubscribe()
+  }, [])
 
-return (
-  <Tabs
-    screenOptions={{
-      tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-      headerShown: false,
-      tabBarButton: HapticTab,
-      tabBarBackground: TabBarBackground,
-      tabBarStyle: Platform.select({
-        ios: {
-          // Use a transparent background on iOS to show the blur effect
-          position: "absolute",
-        },
-        default: {},
-      }),
-    }}
-  >
-    <Tabs.Screen
-      name="index"
-      options={{
-        title: "Scan",
-        tabBarIcon: ({ color }) => <IconSymbol size={28} name="qrcode.viewfinder" color={color} />,
+  return (
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        headerShown: false,
+        tabBarButton: HapticTab,
+        tabBarBackground: TabBarBackground,
+        tabBarStyle: Platform.select({
+          ios: {
+            // Use a transparent background on iOS to show the blur effect
+            position: "absolute",
+          },
+          default: {},
+        }),
       }}
-    />
-    <Tabs.Screen
-      name="scan-history"
-      options={{
-        title: "Scan History",
-        tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
-      }}
-    />
-    <Tabs.Screen
-      name="register"
-      options={{
-        title: session ? "Home" : "Register",
-        tabBarIcon: ({ color }) => (
-          <IconSymbol size={28} name={session ? "house.fill" : "person.crop.circle.badge.plus"} color={color} />
-        ),
-      }}
-    />
-  </Tabs>
-)
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Scan",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="qrcode.viewfinder" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="scan-history"
+        options={{
+          title: "Scan History",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="register"
+        options={{
+          title: session ? "Home" : "Register",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name={session ? "house.fill" : "person.crop.circle.badge.plus"} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
+  )
 }
