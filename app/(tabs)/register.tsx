@@ -39,9 +39,9 @@ export default function RegisterTab() {
 
   // Show different screens based on mode
   if (session && screenMode === "profile") {
-    return <ProfileScreen session={session}/>
+    return <ProfileScreen session={session} />
   }
 
   // Show auth screen if no session
-  return <AuthScreen onDone={() => {}} />
+  return <AuthScreen onDone={() => { }} />
 }

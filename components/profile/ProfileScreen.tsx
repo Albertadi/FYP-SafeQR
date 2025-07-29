@@ -117,7 +117,7 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
   }
 
   const handleFAQ = () => {
-       setFaqVisible(true)
+    setFaqVisible(true)
   }
 
   const handleRetry = () => {
@@ -229,7 +229,7 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
           <TouchableOpacity
             style={[styles.editButton, { backgroundColor: colors.cardBackground }]}
             onPress=
-            { () => router.replace("/editProfile")}>
+            {() => router.replace("/editProfile")}>
             <Text style={[styles.editButtonText, { color: colors.text }]}>Edit Profile</Text>
           </TouchableOpacity>
         </View>

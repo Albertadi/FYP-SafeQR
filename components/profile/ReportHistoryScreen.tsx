@@ -270,7 +270,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitleContainer: {
-    flex: 1,
     alignItems: "center",
   },
   headerTitle: {

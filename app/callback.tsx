@@ -24,16 +24,17 @@ export default function CallbackScreen() {
         router.replace("/(tabs)/register")
         return
       }
-      
+
       // Redirect based on type
       if (type === "signup") {
         Alert.alert("Email confirmed", "Your email has been confirmed. You can login now.")
         router.replace("/(tabs)/register")
-      } 
+      }
       else if (type === "recovery") {
         router.replace({
           pathname: "/reset-password",
-          params: { token },})
+          params: { token },
+        })
       } else {
         // fallback
         router.replace("/(tabs)/register")
