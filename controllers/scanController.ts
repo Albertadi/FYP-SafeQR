@@ -48,16 +48,21 @@ export async function getScanByID(scan_id: string): Promise<QRScan> {
 }
 
 // Get scan history for a user
-export async function getScanHistory(user_id: string): Promise<QRScan[]> {
+export async function getScanHistory(
+  user_id: string,
+  sortField: "scanned_at" | "decoded_content" = "scanned_at",
+  sortOrder: "asc" | "desc" = "desc"
+): Promise<QRScan[]> {
   const { data, error } = await supabase
     .from("qr_scans")
     .select("*")
     .eq("user_id", user_id)
-    .order("scanned_at", { ascending: false })
+    .order(sortField, { ascending: sortOrder === "asc" });
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
+
 
 export async function handleQRScanned({ type, data }: { type: string; data: string }): Promise<ScanResult> {
   try {
