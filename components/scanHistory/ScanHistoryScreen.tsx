@@ -23,6 +23,7 @@ export default function ScanHistoryList() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState("")
   const [sortAsc, setSortAsc] = useState(false)
+  const [sortField, setSortField] = useState<"scanned_at" | "decoded_content">("scanned_at")
 
   const [selectedScan, setSelectedScan] = useState<QRScan | null>(null)
   const [showScanDetails, setShowScanDetails] = useState(false)
@@ -74,11 +75,14 @@ export default function ScanHistoryList() {
 
   const filtered = useMemo(() => {
     const arr = history.filter((item) => item.decoded_content.toLowerCase().includes(query.toLowerCase()))
-    return arr.sort((a, b) =>
-      sortAsc
-        ? new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
-        : new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime(),
-    )
+    return arr.sort((a, b) => {
+  const valA = sortField === "scanned_at" ? new Date(a.scanned_at).getTime() : a.decoded_content.toLowerCase()
+  const valB = sortField === "scanned_at" ? new Date(b.scanned_at).getTime() : b.decoded_content.toLowerCase()
+
+  if (valA < valB) return sortAsc ? -1 : 1
+  if (valA > valB) return sortAsc ? 1 : -1
+  return 0
+})
   }, [history, query, sortAsc])
 
   const formatDateTime = (dateString: string) => {
@@ -177,12 +181,23 @@ export default function ScanHistoryList() {
         </View>
 
         {/* Sort Controls */}
-        <View style={[styles.sortContainer, { backgroundColor: colors.background }]}>
-          <TouchableOpacity style={styles.sortButton} onPress={() => setSortAsc((s) => !s)}>
-            <Text style={[styles.sortText, { color: colors.secondaryText }]}>sort by date</Text>
-            <IconSymbol name="chevron.down" size={14} color={colors.secondaryText} />
-          </TouchableOpacity>
-        </View>
+<View style={[styles.sortContainer, { backgroundColor: colors.background, flexDirection: "row", gap: 12 }]}>
+  <TouchableOpacity style={styles.sortButton} onPress={() => setSortAsc((s) => !s)}>
+    <Text style={[styles.sortText, { color: colors.secondaryText }]}>
+      Sort: {sortAsc ? "Asc" : "Desc"}
+    </Text>
+    <IconSymbol name="chevron.down" size={14} color={colors.secondaryText} />
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.sortButton} onPress={() => {
+    setSortField((prev) => prev === "scanned_at" ? "decoded_content" : "scanned_at")
+  }}>
+    <Text style={[styles.sortText, { color: colors.secondaryText }]}>
+      By: {sortField === "scanned_at" ? "Date" : "Name"}
+    </Text>
+    <IconSymbol name="chevron.left.forwardslash.chevron.right" size={14} color={colors.secondaryText} />
+  </TouchableOpacity>
+</View>
 
         {/* List */}
         <FlatList

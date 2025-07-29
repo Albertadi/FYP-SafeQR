@@ -14,10 +14,9 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 interface ProfileScreenProps {
   session: any
-  onEditProfile: () => void
 }
 
-export default function ProfileScreen({ session, onEditProfile }: ProfileScreenProps) {
+export default function ProfileScreen({ session }: ProfileScreenProps) {
   const insets = useSafeAreaInsets()
   const rawScheme = useColorScheme()
   const scheme = rawScheme || "light"
@@ -229,8 +228,8 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
           <TouchableOpacity
             style={[styles.editButton, { backgroundColor: colors.cardBackground }]}
-            onPress={onEditProfile}
-          >
+            onPress=
+            { () => router.replace("/editProfile")}>
             <Text style={[styles.editButtonText, { color: colors.text }]}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
