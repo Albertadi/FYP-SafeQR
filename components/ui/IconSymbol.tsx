@@ -1,12 +1,8 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
-import type { SymbolViewProps, SymbolWeight } from "expo-symbols"
-import type { ComponentProps } from "react"
+import type { SymbolWeight } from "expo-symbols"
 import type { OpaqueColorValue, StyleProp, TextStyle } from "react-native"
-
-type IconMapping = Record<SymbolViewProps["name"], ComponentProps<typeof MaterialIcons>["name"]>
-type IconSymbolName = keyof typeof MAPPING
 
 /**
  * Add your SF Symbols to Material Icons mappings here.
@@ -23,6 +19,7 @@ const MAPPING = {
   "person.crop.circle": "account-circle",
   "clock.fill": "history",
   "qrcode.viewfinder": "qr-code-scanner",
+  "exclamationmark.octagon.fill": "report",
   magnifyingglass: "search",
   xmark: "close",
   "xmark.circle.fill": "cancel",
@@ -35,7 +32,15 @@ const MAPPING = {
   "questionmark.circle": "help",
   "info.circle": "info",
   gear: "settings",
-} as IconMapping
+  // New mappings for scan types
+  "message-square": "message", // For SMS
+  phone: "phone", // For Tel
+  wifi: "wifi", // For Wi-Fi
+  "doc.text": "description", // For Plain Text
+} as const // Use 'as const' to infer literal types for keys and values
+
+// Define IconSymbolName directly from the keys of the MAPPING object
+type IconSymbolName = keyof typeof MAPPING
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.

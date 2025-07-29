@@ -1,13 +1,15 @@
 "use client"
 
+import FAQScreen from "@/components/profile/FAQScreen"
+import ReportHistoryScreen from "@/components/profile/ReportHistoryScreen"
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
-import { signOut } from "@/controllers/authController"
+import { signOut, suspendUser } from "@/controllers/authController"
 import { getUserProfile, type UserProfile } from "@/controllers/userProfileController"
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { router } from "expo-router"
 import { useEffect, useState } from "react"
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 interface ProfileScreenProps {
@@ -25,6 +27,8 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState(false)
+  const [showReportHistory, setReportHistory] = useState(false)
+  const [faqVisible, setFaqVisible] = useState(false)
 
   // Fetch user profile from public users table
   useEffect(() => {
@@ -66,18 +70,55 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
     ])
   }
 
-  const handleDeleteAccount = () => {
-    Alert.alert("Delete Account", "This action cannot be undone. Are you sure you want to delete your account?", [
+  const handleDeactivateAccount = () => {
+    Alert.alert("Deactivate Account", "You will not be able to use this email address to register for another account in the future.", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Delete",
+        text: "Confirm",
         style: "destructive",
         onPress: () => {
-          // TODO: Implement account deletion
-          Alert.alert("Feature Coming Soon", "Account deletion will be available in a future update.")
+          (async () => {
+            try {
+              await suspendUser(session.user.id)
+              Alert.alert("Deactivating Account", "Your Account has been deactivated. Signing you out...")
+              await signOut()
+            } catch (err) {
+              console.error("Error suspending user:", err)
+              Alert.alert("Error", "Failed to process account deactivation. Please contact support.")
+            }
+          })()
         },
       },
-    ])
+    ]
+    )
+  }
+
+  const handleSupport = () => {
+    const supportEmail = "fypsafeqr@gmail.com"
+    Alert.alert("Contact Support", `You can contact the development team by emailing: ${supportEmail}`,
+      [
+        { text: "OK", style: "cancel" },
+        {
+          text: "Email Team",
+          onPress: () => {
+            const mailtoUrl = `mailto:${supportEmail}`
+            Linking.canOpenURL(mailtoUrl)
+              .then((supported) => {
+                if (!supported) {
+                  Alert.alert("Error", `Unable to open email client, please send an email to us manually at ${supportEmail}.`)
+                } else {
+                  return Linking.openURL(mailtoUrl)
+                }
+              })
+              .catch(() => Alert.alert("Error", "An unexpected error occurred"))
+          },
+        },
+      ]
+    )
+  }
+
+  const handleFAQ = () => {
+       setFaqVisible(true)
   }
 
   const handleRetry = () => {
@@ -100,10 +141,6 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
     }
 
     fetchUserProfile()
-  }
-
-  const handlePlaceholderAction = (feature: string) => {
-    Alert.alert("Coming Soon", `${feature} will be available in a future update.`)
   }
 
   const formatMemberSince = (dateString: string) => {
@@ -136,7 +173,7 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
         {/* Error Content */}
         <View style={styles.errorContainer}>
-          <IconSymbol name="person.crop.circle.badge.exclamationmark" size={64} color={colors.secondaryText} />
+          <IconSymbol name="person.crop.circle" size={64} color={colors.secondaryText} />
           <Text style={[styles.errorTitle, { color: colors.text }]}>Profile Not Found</Text>
           <Text style={[styles.errorMessage, { color: colors.secondaryText }]}>
             We couldn't find your user profile. This might be a temporary issue.
@@ -161,6 +198,14 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+    )
+  }
+
+  if (showReportHistory) {
+    return (
+      <ReportHistoryScreen
+        onBack={() => setReportHistory(false)}
+      />
     )
   }
 
@@ -240,19 +285,19 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: colors.background }]}
-            onPress={() => handlePlaceholderAction("Report Details Form")}
+            onPress={() => setReportHistory(true)}
           >
-            <IconSymbol name="gear" size={20} color={colors.text} />
-            <Text style={[styles.menuText, { color: colors.text }]}>Report Details Form</Text>
+            <IconSymbol name="exclamationmark.octagon.fill" size={20} color={colors.text} />
+            <Text style={[styles.menuText, { color: colors.text }]}>View All Reports</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.secondaryText} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: colors.background }]}
-            onPress={handleDeleteAccount}
+            onPress={handleDeactivateAccount}
           >
             <IconSymbol name="trash.fill" size={20} color="#F44336" />
-            <Text style={[styles.menuText, { color: "#F44336" }]}>Delete Account</Text>
+            <Text style={[styles.menuText, { color: "#F44336" }]}>Deactivate Account</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.secondaryText} />
           </TouchableOpacity>
         </View>
@@ -263,7 +308,7 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: colors.background }]}
-            onPress={() => handlePlaceholderAction("Support")}
+            onPress={handleSupport}
           >
             <IconSymbol name="info.circle" size={20} color={colors.text} />
             <Text style={[styles.menuText, { color: colors.text }]}>Support</Text>
@@ -272,13 +317,14 @@ export default function ProfileScreen({ session, onEditProfile }: ProfileScreenP
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: colors.background }]}
-            onPress={() => handlePlaceholderAction("FAQ")}
+            onPress={handleFAQ}
           >
             <IconSymbol name="questionmark.circle" size={20} color={colors.text} />
             <Text style={[styles.menuText, { color: colors.text }]}>FAQ</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.secondaryText} />
           </TouchableOpacity>
         </View>
+        <FAQScreen visible={faqVisible} onClose={() => setFaqVisible(false)} />
 
         {/* Logout Button */}
         <TouchableOpacity

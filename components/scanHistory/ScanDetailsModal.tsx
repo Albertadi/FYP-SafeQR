@@ -2,10 +2,12 @@
 
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
-import { type QRScan } from "@/controllers/scanController"
+import type { QRScan } from "@/controllers/scanController"
 import { useColorScheme } from "@/hooks/useColorScheme"
+import { parseQrContent, type ParsedQRContent, type QRContentType } from "@/utils/qrParser"; // Import parseQrContent and types
 import * as Clipboard from "expo-clipboard"
-import React, { useState } from "react"
+import { useRouter } from "expo-router"
+import { useEffect, useState } from "react"
 import { Alert, Linking, Modal, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import ReportScanModal from "./ReportScanModal"
@@ -21,11 +23,23 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
   const rawScheme = useColorScheme()
   const scheme = rawScheme || "light"
   const colors = Colors[scheme]
+  const router = useRouter()
 
   const [loading, setLoading] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [parsedContentData, setParsedContentData] = useState<ParsedQRContent["data"] | undefined>(undefined)
 
-  if (!scan) return null
+  useEffect(() => {
+    if (scan?.decoded_content) {
+      const parsed = parseQrContent(scan.decoded_content)
+      setParsedContentData(parsed.data)
+    } else {
+      setParsedContentData(undefined)
+    }
+  }, [scan])
+
+  if (!scan || !parsedContentData) return null
+
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
@@ -65,25 +79,112 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
     }
   }
 
-  const handleCopy = async () => {
-    try {
-      await Clipboard.setStringAsync(scan.decoded_content)
-      Alert.alert("Copied", "URL copied to clipboard")
-    } catch (error) {
-      Alert.alert("Error", "Failed to copy URL")
+  const getContentTypeDisplay = (type: QRContentType) => {
+    switch (type) {
+      case "url":
+        return "URL"
+      case "sms":
+        return "SMS Message"
+      case "tel":
+        return "Phone Number"
+      case "mailto":
+        return "Email Address"
+      case "wifi":
+        return "Wi-Fi Network"
+      case "text":
+        return "Plain Text"
+      default:
+        return "Unknown"
     }
   }
 
-  const handleOpenLink = async () => {
+  const getContentDetailsDisplay = (type: QRContentType, data: ParsedQRContent["data"]) => {
+    switch (type) {
+      case "url":
+        return data.url
+      case "sms":
+        return `Number: ${data.number || "N/A"}\nMessage: ${data.body || "N/A"}`
+      case "tel":
+        return data.number
+      case "mailto":
+        return `Email: ${data.email || "N/A"}\nSubject: ${data.subject || "N/A"}\nBody: ${data.body || "N/A"}`
+      case "wifi":
+        return `SSID: ${data.ssid || "N/A"}\nSecurity: ${data.authentication || "N/A"}\nPassword: ${data.password ? "********" : "None"}`
+      case "text":
+        return data.text
+      default:
+        return data.originalContent
+    }
+  }
+
+  const getActionButtonText = (type: QRContentType, securityStatus?: string) => {
+    switch (type) {
+      case "url":
+        if (securityStatus?.toLowerCase() === "malicious") {
+          return "Open in Sandbox"
+        }
+        else {
+          return "Open Link"
+        }
+      case "sms":
+        return "Send SMS"
+      case "tel":
+        return "Call Number"
+      case "mailto":
+        return "Send Email"
+      case "wifi":
+        return "Show Wi-Fi Details"
+      case "text":
+        return "Copy Text"
+      default:
+        return "Perform Action"
+    }
+  }
+
+  const handlePerformAction = async () => {
+    if (!scan || !parsedContentData) return
+
     try {
-      const canOpen = await Linking.canOpenURL(scan.decoded_content)
-      if (canOpen) {
-        await Linking.openURL(scan.decoded_content)
-      } else {
-        Alert.alert("Error", "Cannot open this URL")
+      switch (scan.content_type) {
+        case "url":
+          if (scan.security_status?.toLowerCase() === "malicious") {
+            router.push({
+              pathname: "/sandboxPreview",
+              params: { url: scan.decoded_content },
+            });
+          }
+          else {
+            await Linking.openURL(scan.decoded_content)
+          }
+          break
+        case "sms":
+          const smsUrl = `sms:${parsedContentData.number}${parsedContentData.body ? `?body=${encodeURIComponent(parsedContentData.body)}` : ""}`
+          await Linking.openURL(smsUrl)
+          break
+        case "tel":
+          const telUrl = `tel:${parsedContentData.number}`
+          await Linking.openURL(telUrl)
+          break
+        case "mailto":
+          const mailtoUrl = `mailto:${parsedContentData.email}${parsedContentData.subject ? `?subject=${encodeURIComponent(parsedContentData.subject)}` : ""}${parsedContentData.body ? `${parsedContentData.subject ? "&" : "?"}body=${encodeURIComponent(parsedContentData.body)}` : ""}`
+          await Linking.openURL(mailtoUrl)
+          break
+        case "wifi":
+          Alert.alert(
+            "Wi-Fi Details",
+            `SSID: ${parsedContentData.ssid || "N/A"}\nSecurity: ${parsedContentData.authentication || "N/A"}\nPassword: ${parsedContentData.password || "None"}\n\nPlease connect manually using these details.`,
+          )
+          break
+        case "text":
+          await Clipboard.setStringAsync(scan.decoded_content)
+          Alert.alert("Copied", "Content copied to clipboard!")
+          break
+        default:
+          Alert.alert("Unsupported Action", "This content type does not support a direct action.")
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to open URL")
+      console.error("Failed to perform action:", error)
+      Alert.alert("Error", "Failed to perform action.")
     }
   }
 
@@ -91,13 +192,12 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
     try {
       await Share.share({
         message: scan.decoded_content,
-        url: scan.decoded_content,
+        url: scan.decoded_content, // For non-URL types, this might not be a valid URL, but it's the closest option for sharing.
       })
     } catch (error) {
-      Alert.alert("Error", "Failed to share URL")
+      Alert.alert("Error", "Failed to share content")
     }
   }
-
 
   const handleReportSubmitted = () => {
     setShowReportModal(false)
@@ -130,9 +230,14 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
                 </View>
                 <View style={styles.scanInfo}>
                   <Text style={[styles.typeLabel, { color: colors.secondaryText }]}>Type</Text>
-                  <Text style={[styles.typeValue, { color: colors.text }]}>URL</Text>
-                  <Text style={[styles.urlText, { color: colors.text }]} numberOfLines={2}>
-                    {scan.decoded_content}
+                  <Text style={[styles.typeValue, { color: colors.text }]}>
+                    {getContentTypeDisplay(scan.content_type)}
+                  </Text>
+                  <Text
+                    style={[styles.urlText, { color: colors.text }]}
+                    numberOfLines={scan.content_type === "text" ? 5 : 2}
+                  >
+                    {getContentDetailsDisplay(scan.content_type, parsedContentData)}
                   </Text>
                 </View>
               </View>
@@ -160,16 +265,17 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
 
             {/* Action Buttons */}
             <View style={styles.buttonsSection}>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={handleCopy}>
-                <Text style={[styles.actionButtonText, { color: "#fff" }]}>Copy</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={handleOpenLink}>
-                <Text style={[styles.actionButtonText, { color: "#fff" }]}>Open Link</Text>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: "#000" }]}
+                onPress={handlePerformAction}
+              >
+                <Text style={[styles.actionButtonText, { color: "#fff" }]}>
+                  {getActionButtonText(scan.content_type, scan.security_status)}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={handleShareLink}>
-                <Text style={[styles.actionButtonText, { color: "#fff" }]}>Share Link</Text>
+                <Text style={[styles.actionButtonText, { color: "#fff" }]}>Share Content</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -177,6 +283,10 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
                 onPress={() => setShowReportModal(true)}
               >
                 <Text style={[styles.actionButtonText, { color: "#fff" }]}>Report Scan</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={onClose}>
+                <Text style={[styles.actionButtonText, { color: "#fff" }]}>Back to Scan History</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

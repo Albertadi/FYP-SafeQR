@@ -1,8 +1,10 @@
 // components/Results.tsx
+
 import type { ParsedQRContent, QRContentType } from "@/utils/qrParser"
 import { Ionicons } from "@expo/vector-icons"
-import * as Clipboard from "expo-clipboard"
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+
+import React, { useState } from "react"
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 type Props = {
   status: "safe" | "malicious" | "suspicious"
@@ -14,6 +16,11 @@ type Props = {
   onAcknowledge?: () => void
   onPerformAction?: () => void // Generic action button handler
   onBack: () => void
+  onOpenSandbox?: () => void
+  onCopyText?: () => void
+  onShareLink?: () => void
+  onReport?: () => void
+
 }
 
 const statusConfig = {
@@ -51,9 +58,18 @@ export default function ResultTemplate({
   onAcknowledge,
   onBack,
   onPerformAction,
+  onOpenSandbox,
+  onCopyText,
+  onShareLink,
+  onReport,
 }: Props) {
   const config = statusConfig[status]
   const isSafe = status === "safe"
+
+  const [menuVisible, setMenuVisible] = useState(false)
+
+  const toggleMenu = () => setMenuVisible(!menuVisible)
+  const closeMenu = () => setMenuVisible(false)
 
   const getContentTypeDisplay = (type: QRContentType) => {
     switch (type) {
@@ -113,15 +129,6 @@ export default function ResultTemplate({
     }
   }
 
-  const handleCopyText = async () => {
-    try {
-      await Clipboard.setStringAsync(originalContent)
-      Alert.alert("Copied", "Content copied to clipboard!")
-    } catch (error) {
-      Alert.alert("Error", "Failed to copy content.")
-    }
-  }
-
   return (
     <View style={styles.container}>
       <Text style={styles.header}>SCANNING COMPLETE</Text>
@@ -146,20 +153,53 @@ export default function ResultTemplate({
         )}
 
       {/* Primary Action Button */}
-      {canPerformAction && (isSafe || acknowledged) && (
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: config.buttonColor }]}
-          onPress={contentType === "text" ? handleCopyText : onPerformAction}
-        >
-          <Text style={styles.buttonText}>{getActionButtonText(contentType)}</Text>
-        </TouchableOpacity>
+      {canPerformAction && isSafe && (
+        <View style={styles.buttonsRow}>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: config.buttonColor }]}
+            onPress={contentType === "text" ? onCopyText : onPerformAction}
+          >
+            <Text style={styles.buttonText}>{getActionButtonText(contentType)}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+            <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          {menuVisible && (
+            <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+              <TouchableOpacity style={styles.menuOverlay} onPress={closeMenu} activeOpacity={1} />
+              <View style={styles.menuDropdown}>
+                <TouchableOpacity onPress={() => {
+                  closeMenu()
+                  onCopyText?.()
+                }} style={styles.menuItem}>
+                  <Text style={styles.menuItemText}>Copy Content</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  closeMenu()
+                  onShareLink?.()
+                }} style={styles.menuItem}>
+                  <Text style={styles.menuItemText}>Share Content</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  closeMenu()
+                  onReport?.()
+                }} style={styles.menuItem}>
+                  <Text style={[styles.menuItemText, { color: "#e74c3c" }]}>Report Content</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
       )}
+
 
       {/* Sandbox Button (only for URLs and if not safe) */}
       {contentType === "url" && !isSafe && acknowledged && (
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#007AFF" }]} // A neutral color for sandbox
-          onPress={() => Alert.alert("Sandbox Feature", "Opening in sandbox environment is not yet implemented.")}
+          style={[styles.button, { backgroundColor: "#e74c3c" }]} // A neutral color for sandbox
+          onPress={onOpenSandbox}
         >
           <Text style={styles.buttonText}>Open in Sandbox Environment</Text>
         </TouchableOpacity>
@@ -224,11 +264,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
   },
+  buttonsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12
+  },
   button: {
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
-    marginBottom: 20,
   },
   buttonText: {
     color: "white",
@@ -248,4 +293,45 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     opacity: 0.9,
   },
+  menuButton: {
+    backgroundColor: "#d0d0d0d0",
+    borderRadius: 20,
+    padding: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuOverlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "transparent",
+    zIndex: 999,
+  },
+  menuDropdown: {
+    position: "absolute",
+    top: 0, // adjust depending on your layout
+    right: 50, // adjust to align near the button
+    backgroundColor: "#fafafa",
+    borderRadius: 8,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    width: 150,
+    zIndex: 1001,
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomColor: "#eee",
+    borderBottomWidth: 1,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: "#333",
+  },
+
 })

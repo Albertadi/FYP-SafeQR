@@ -3,11 +3,13 @@
 import ScanDetailsModal from "@/components/scanHistory/ScanDetailsModal"
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
+import { getScanHistory, type QRScan } from "@/controllers/scanController"
 import { useColorScheme } from "@/hooks/useColorScheme"
-import { getScanHistory, type QRScan } from "@/utils/api"
+import type { QRContentType } from "@/utils/qrParser"
 import { supabase } from "@/utils/supabase"
-import React, { useEffect, useMemo, useState } from "react"
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import * as Clipboard from "expo-clipboard"
+import { useEffect, useMemo, useState } from "react"
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function ScanHistoryList() {
@@ -84,10 +86,58 @@ export default function ScanHistoryList() {
     return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
   }
 
+  const getScanTypeIcon = (contentType: QRContentType) => {
+    switch (contentType) {
+      case "url":
+        return "link"
+      case "sms":
+        return "message-square"
+      case "tel":
+        return "phone"
+      case "mailto":
+        return "envelope.fill"
+      case "wifi":
+        return "wifi"
+      case "text":
+        return "doc.text"
+      default:
+        return "qrcode.viewfinder" // Default icon
+    }
+  }
+
+  const getScanTypeDisplayName = (contentType: QRContentType) => {
+    switch (contentType) {
+      case "url":
+        return "URL"
+      case "sms":
+        return "SMS Message"
+      case "tel":
+        return "Phone Number"
+      case "mailto":
+        return "Email Address"
+      case "wifi":
+        return "Wi-Fi Network"
+      case "text":
+        return "Plain Text"
+      default:
+        return "Unknown Type"
+    }
+  }
+
   const handleScanPress = (scan: QRScan) => {
     setSelectedScan(scan)
     setShowScanDetails(true)
   }
+
+  const handleCopy = async (content: string) => {
+      try {
+        await Clipboard.setStringAsync(content)
+        Alert.alert("Copied", "URL copied to clipboard")
+      } catch (error) {
+        Alert.alert("Error", "Failed to copy URL")
+      }
+    }
+
 
   if (loading) {
     return (
@@ -150,11 +200,18 @@ export default function ScanHistoryList() {
                 style={[styles.card, { backgroundColor: colors.cardBackground }]}
                 onPress={() => handleScanPress(item)}
               >
-                <View style={styles.iconContainer}>
-                  <IconSymbol name="link" size={24} color={colors.text} />
-                </View>
+                <TouchableOpacity
+  style={styles.iconContainer}
+  onPress={() => handleCopy(item.decoded_content)} // Or whichever content you want to copy
+  activeOpacity={0.7}
+>
+
+                  <IconSymbol name={getScanTypeIcon(item.content_type)} size={24} color={colors.text} />
+                </TouchableOpacity>
                 <View style={styles.contentContainer}>
-                  <Text style={[styles.urlLabel, { color: colors.secondaryText }]}>URL:</Text>
+                  <Text style={[styles.urlLabel, { color: colors.secondaryText }]}>
+                    {getScanTypeDisplayName(item.content_type)}:
+                  </Text>
                   <Text style={[styles.urlText, { color: colors.text }]} numberOfLines={1}>
                     {item.decoded_content}
                   </Text>
@@ -213,7 +270,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
- 
+
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,

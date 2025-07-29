@@ -12,6 +12,7 @@ export interface Report {
   status: string
   created_at: string
   updated_at?: string
+  qr_scans?: { decoded_content: string }
 }
 
 /**
@@ -38,7 +39,7 @@ export async function submitReport(payload: {
 export async function getUserReports(user_id: string): Promise<Report[]> {
   const { data, error } = await supabase
     .from("reports")
-    .select("*")
+    .select("*, qr_scans(decoded_content)")
     .eq("user_id", user_id)
     .order("created_at", { ascending: false })
 
