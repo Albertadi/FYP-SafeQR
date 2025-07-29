@@ -19,6 +19,7 @@ export async function register(email: string, password: string, username: string
       data: {
         full_name: fullName || "",
       },
+      emailRedirectTo: "fypsafeqr://callback",
     },
   })
 
@@ -40,7 +41,7 @@ export async function register(email: string, password: string, username: string
     .select() // return the inserted row
     .single()
 
-  if (profileError) throw profileError
+  if (profileError) throw new Error("Email not available.")
 
   return { user, profile }
 }
@@ -75,7 +76,7 @@ export async function signIn(email: string, password: string) {
  */
 export async function sendPasswordResetEmail(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: "fypsafeqr://callback",
+    redirectTo: "fypsafeqr://reset-password",
   })
   if (error) throw error
 }
@@ -196,11 +197,11 @@ export async function checkIfSuspended(email: string): Promise<{ suspended: bool
     .eq("email", email)
     .single()
 
-  if (error) { throw new Error("Invalid Login Credentials.")}
+  if (error) { throw new Error("Invalid Login Credentials.") }
 
 
   // Retrieve suspension end_date if currently suspended
-  if (data.account_status == "suspended") { 
+  if (data.account_status == "suspended") {
     const { data: suspension, error: suspensionError } = await supabase
       .from("suspensions")
       .select("end_date")

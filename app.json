@@ -10,11 +10,8 @@
     "newArchEnabled": true,
     "deepLinking": true,
     "extra": {
-      "supabaseRedirectUrl": "fypsafeqr://callback",
-      "router": {},
-      "eas": {
-        "projectId": "bfc334ca-2890-4c67-92ab-a5f08f44a78d"
-      }
+      "supabaseRedirectUrl": "fypsafeqr://",
+      "router": {}
     },
     "ios": {
       "supportsTablet": true
