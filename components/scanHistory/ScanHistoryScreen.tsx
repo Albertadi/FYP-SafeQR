@@ -83,10 +83,7 @@ export default function ScanHistoryList() {
       if (valA > valB) return sortAsc ? 1 : -1
       return 0
     })
-<<<<<<< HEAD
 
-=======
->>>>>>> 5838abb76679fd5b1467a9b705a845d5e8d4f854
   }, [history, query, sortAsc])
 
   const formatDateTime = (dateString: string) => {
