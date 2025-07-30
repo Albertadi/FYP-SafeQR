@@ -64,6 +64,7 @@ export async function getScanHistory(
   return data
 }
 
+
 export async function handleQRScanned({ type, data }: { type: string; data: string }): Promise<ScanResult> {
   try {
     // 1. Validate input
