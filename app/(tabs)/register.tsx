@@ -1,11 +1,10 @@
 import AuthScreen from "@/components/auth/AuthScreen"
-import EditProfileScreen from "@/components/profile/EditProfileScreen"
 import ProfileScreen from "@/components/profile/ProfileScreen"
 import { supabase } from "@/utils/supabase"
 import { useEffect, useState } from "react"
 import { ActivityIndicator, View } from "react-native"
 
-type ScreenMode = "auth" | "profile" | "editProfile"
+type ScreenMode = "auth" | "profile"
 
 export default function RegisterTab() {
   const [session, setSession] = useState<any>(null)
@@ -39,14 +38,10 @@ export default function RegisterTab() {
   }
 
   // Show different screens based on mode
-  if (screenMode === "editProfile") {
-    return <EditProfileScreen session={session} onBack={() => setScreenMode("profile")} />
-  }
-
   if (session && screenMode === "profile") {
-    return <ProfileScreen session={session} onEditProfile={() => setScreenMode("editProfile")} />
+    return <ProfileScreen session={session} />
   }
 
   // Show auth screen if no session
-  return <AuthScreen onDone={() => {}} />
+  return <AuthScreen onDone={() => { }} />
 }
