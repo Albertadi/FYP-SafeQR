@@ -83,7 +83,10 @@ export default function ScanHistoryList() {
       if (valA > valB) return sortAsc ? 1 : -1
       return 0
     })
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5838abb76679fd5b1467a9b705a845d5e8d4f854
   }, [history, query, sortAsc])
 
   const formatDateTime = (dateString: string) => {
@@ -135,13 +138,13 @@ export default function ScanHistoryList() {
   }
 
   const handleCopy = async (content: string) => {
-      try {
-        await Clipboard.setStringAsync(content)
-        Alert.alert("Copied", "URL copied to clipboard")
-      } catch (error) {
-        Alert.alert("Error", "Failed to copy URL")
-      }
+    try {
+      await Clipboard.setStringAsync(content)
+      Alert.alert("Copied", "URL copied to clipboard")
+    } catch (error) {
+      Alert.alert("Error", "Failed to copy URL")
     }
+  }
 
 
   if (loading) {
@@ -218,10 +221,10 @@ export default function ScanHistoryList() {
                 onPress={() => handleScanPress(item)}
               >
                 <TouchableOpacity
-  style={styles.iconContainer}
-  onPress={() => handleCopy(item.decoded_content)} // Or whichever content you want to copy
-  activeOpacity={0.7}
->
+                  style={styles.iconContainer}
+                  onPress={() => handleCopy(item.decoded_content)} // Or whichever content you want to copy
+                  activeOpacity={0.7}
+                >
 
                   <IconSymbol name={getScanTypeIcon(item.content_type)} size={24} color={colors.text} />
                 </TouchableOpacity>

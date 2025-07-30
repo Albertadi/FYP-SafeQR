@@ -2,37 +2,41 @@
 
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
-import { signOut, updateUserAuth } from "@/controllers/authController"
+import { getCurrentSession, /*updatePasswordWithTimeout*/ updatePassword, updateUsername } from "@/controllers/authController"
 import {
   getUserProfile,
-  isUsernameAvailable,
-  updateUsername,
-  type UserProfile,
+  type UserProfile
 } from "@/controllers/userProfileController"
 import { useColorScheme } from "@/hooks/useColorScheme"
+import { router } from "expo-router"
 import { useEffect, useState } from "react"
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
-interface EditProfileScreenProps {
-  session: any
-  onBack: () => void
-}
-
-export default function EditProfileScreen({ session, onBack }: EditProfileScreenProps) {
+export default function EditProfileScreen() {
   const insets = useSafeAreaInsets()
   const rawScheme = useColorScheme()
   const scheme = rawScheme || "light"
   const colors = Colors[scheme]
 
   const [loading, setLoading] = useState(false)
-  const [profileLoading, setProfileLoading] = useState(true)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [profileError, setProfileError] = useState(false)
+  const [session, setSession] = useState<any>(null)
 
   // Form fields
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  useEffect(() => {
+    // Get initial session
+    getCurrentSession()
+      .then((session) => setSession(session))
+      .catch((err) => {
+        console.error("Failed to get session:", err)
+        setSession(null)
+      })
+  }, [])
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -43,150 +47,81 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
         const profile = await getUserProfile(session.user.id)
         setUserProfile(profile)
         setUsername(profile.username)
-        setProfileError(false)
       } catch (error: any) {
         console.error("Error fetching user profile:", error)
-        setProfileError(true)
-      } finally {
-        setProfileLoading(false)
       }
     }
 
     fetchUserProfile()
   }, [session])
 
+  const onBack = () => {
+    setLoading(false)
+    router.replace("/(tabs)/register")
+  }
+
   const handleUpdate = async () => {
-    if (!username.trim()) {
+    const trimmedUsername = username.trim()
+    const trimmedPassword = password.trim()
+    const trimmedConfirmPassword = confirmPassword.trim()
+
+    if (!trimmedUsername) {
       Alert.alert("Error", "Username is required")
       return
     }
 
-    // Check if username is already taken (excluding current user)
-    try {
-      const available = await isUsernameAvailable(username.trim(), session.user.id)
-      if (!available) {
-        Alert.alert("Error", "Username is already taken")
+    if (trimmedPassword) {
+      if (trimmedPassword.length < 6) {
+        Alert.alert("Error", "Password must be at least 6 characters")
         return
       }
-    } catch (error) {
-      console.error("Error checking username availability:", error)
+      if (trimmedPassword !== trimmedConfirmPassword) {
+        Alert.alert("Error", "Passwords do not match")
+        return
+      }
+    }
+
+    const usernameChanged = trimmedUsername !== userProfile?.username
+    const passwordChanged = !!trimmedPassword
+
+    if (!usernameChanged && !passwordChanged) {
+      Alert.alert("No Changes", "No updates were made.")
+      return
     }
 
     setLoading(true)
+
     try {
-      // Prepare auth updates
-      const authUpdates: any = {}
+      if (usernameChanged) {
+        await updateUsername(session.user.id, trimmedUsername)
+      }
 
-      // Update password if provided
-      if (password.trim()) {
-        if (password.length < 6) {
-          Alert.alert("Error", "Password must be at least 6 characters long")
+      if (passwordChanged) {
+        const result = await updatePassword(trimmedPassword)
+        if (result === null) {
+          Alert.alert("Password Update Failed", "Password update timed out. Please try again")
           setLoading(false)
-          return
         }
-        authUpdates.password = password
       }
 
-      // Update user auth data only if password is being changed
-      if (Object.keys(authUpdates).length > 0) {
-        await updateUserAuth(authUpdates)
+      const updatedProfile = await getUserProfile(session.user.id)
+      if (!updatedProfile) {
+        setLoading(false)
+        throw new Error("Failed to fetch updated profile")
       }
 
-      // Update username in public users table
-      await updateUsername(session.user.id, username.trim())
-
-      Alert.alert("Success", "Profile updated successfully", [{ text: "OK", onPress: onBack }])
+      Alert.alert("Success", "Profile updated successfully", [
+        { text: "OK", onPress: onBack }])
     } catch (error: any) {
-      console.error("Update error:", error)
+      console.error("Update failed:", error)
       Alert.alert("Error", error.message || "Failed to update profile")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRetry = () => {
-    setProfileLoading(true)
-    setProfileError(false)
-
-    const fetchUserProfile = async () => {
-      if (!session?.user?.id) return
-
-      try {
-        const profile = await getUserProfile(session.user.id)
-        setUserProfile(profile)
-        setUsername(profile.username)
-        setProfileError(false)
-      } catch (error: any) {
-        console.error("Error fetching user profile:", error)
-        setProfileError(true)
-      } finally {
-        setProfileLoading(false)
-      }
-    }
-
-    fetchUserProfile()
-  }
-
-  const handleLogout = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      console.error("Logout error:", error)
-    }
-  }
-
-  if (profileLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-        <View style={styles.center}>
-          <Text style={[{ color: colors.text }]}>Loading profile...</Text>
-        </View>
-      </SafeAreaView>
-    )
-  }
-
-  if (profileError) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.borderColor }]}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <IconSymbol name="chevron.left" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Profile</Text>
-          </View>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        {/* Error Content */}
-        <View style={styles.errorContainer}>
-          <IconSymbol name="person.crop.circle.badge.exclamationmark" size={64} color={colors.secondaryText} />
-          <Text style={[styles.errorTitle, { color: colors.text }]}>Profile Not Found</Text>
-          <Text style={[styles.errorMessage, { color: colors.secondaryText }]}>
-            We couldn't find your user profile. This might be a temporary issue.
-          </Text>
-
-          <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: colors.tint }]}
-            onPress={handleRetry}
-            disabled={profileLoading}
-          >
-            <Text style={[styles.retryButtonText, { color: colors.background }]}>
-              {profileLoading ? "Loading..." : "Try Again"}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.logoutButton, { backgroundColor: "#F44336" }]} onPress={handleLogout}>
-            <Text style={[styles.logoutButtonText, { color: "#fff" }]}>Log Out</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    )
-  }
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: -80 }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.borderColor }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -231,6 +166,22 @@ export default function EditProfileScreen({ session, onBack }: EditProfileScreen
               secureTextEntry
             />
           </View>
+
+          {/* Conditionally render Confirm Password only if password is typed */}
+          {password.length > 0 && (
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
+              <TextInput
+                style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Confirm new password"
+                placeholderTextColor={colors.placeholderText}
+                secureTextEntry
+              />
+            </View>
+          )}
+
         </View>
 
         {/* Update Button */}

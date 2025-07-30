@@ -84,20 +84,6 @@ export async function updateUserProfile(
 }
 
 /**
- * Check if username is already taken (excluding current user)
- */
-export async function isUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
-  let query = supabase.from("users").select("user_id").eq("username", username.trim())
-
-  if (excludeUserId) {
-    query = query.neq("user_id", excludeUserId)
-  }
-
-  const { data } = await query.single()
-  return !data // If no data returned, username is available
-}
-
-/**
  * Check if email is already taken (excluding current user)
  */
 export async function isEmailAvailable(email: string, excludeUserId?: string): Promise<boolean> {
