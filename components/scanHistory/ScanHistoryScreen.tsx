@@ -83,6 +83,7 @@ export default function ScanHistoryList() {
       if (valA > valB) return sortAsc ? 1 : -1
       return 0
     })
+
   }, [history, query, sortAsc])
 
   const formatDateTime = (dateString: string) => {
@@ -198,6 +199,7 @@ export default function ScanHistoryList() {
             <IconSymbol name="chevron.left.forwardslash.chevron.right" size={14} color={colors.secondaryText} />
           </TouchableOpacity>
         </View>
+
 
         {/* List */}
         <FlatList

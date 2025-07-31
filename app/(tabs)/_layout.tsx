@@ -8,7 +8,13 @@ import { HapticTab } from "@/components/ui/HapticTab"
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import TabBarBackground from "@/components/ui/TabBarBackground"
 import { Colors } from "@/constants/Colors"
-import { getCurrentSession, lastSignOutDueToSuspension, lastSuspensionEndDate, onAuthStateChange, resetSuspensionFlag } from "@/controllers/authController"
+import {
+  getCurrentSession,
+  lastSignOutDueToSuspension,
+  lastSuspensionEndDate,
+  onAuthStateChange,
+  resetSuspensionFlag,
+} from "@/controllers/authController"
 import { useColorScheme } from "@/hooks/useColorScheme"
 
 export default function TabLayout() {
@@ -19,8 +25,8 @@ export default function TabLayout() {
   useEffect(() => {
     // Get initial session
     getCurrentSession()
-      .then(session => setSession(session))
-      .catch(err => {
+      .then((session) => setSession(session))
+      .catch((err) => {
         console.error("Failed to get session:", err)
         setSession(null)
       })
@@ -34,15 +40,11 @@ export default function TabLayout() {
       }
 
       if (!session && lastSignOutDueToSuspension) {
-        const untilDate = lastSuspensionEndDate
-          ? ` until ${new Date(lastSuspensionEndDate).toLocaleString()}`
-          : ""
+        const untilDate = lastSuspensionEndDate ? ` until ${new Date(lastSuspensionEndDate).toLocaleString()}` : ""
 
-        Alert.alert(
-          "Signed Out",
-          `Your account has been suspended ${untilDate} and you have been signed out.`,
-          [{ text: "OK", onPress: () => resetSuspensionFlag() }]
-        )
+        Alert.alert("Signed Out", `Your account has been suspended ${untilDate} and you have been signed out.`, [
+          { text: "OK", onPress: () => resetSuspensionFlag() },
+        ])
       }
       setSession(session)
     })
@@ -71,6 +73,13 @@ export default function TabLayout() {
         options={{
           title: "Scan",
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="qrcode.viewfinder" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="generate-qr"
+        options={{
+          title: "Generate QR",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="shield.checkered" color={color} />,
         }}
       />
       <Tabs.Screen
