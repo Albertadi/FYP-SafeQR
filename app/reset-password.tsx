@@ -5,8 +5,15 @@ import { Colors } from "@/constants/Colors"
 import { updatePasswordFromRecovery } from "@/controllers/authController"
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { useRouter } from "expo-router"
-import { useState } from "react"
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import React, { useState } from "react"
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function ResetPasswordScreen() {
