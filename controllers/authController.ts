@@ -76,7 +76,7 @@ export async function signIn(email: string, password: string) {
  */
 export async function sendPasswordResetEmail(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: "fypsafeqr://callback",
+    redirectTo: "https://fyp-safeqradmin.vercel.app/resetpassword"
   })
   if (error) throw error
 }
