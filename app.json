@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "deepLinking": true,
     "extra": {
-      "supabaseRedirectUrl": "fypsafeqr://callback",
+      "supabaseRedirectUrl": "fypsafeqr://",
       "router": {}
     },
     "ios": {

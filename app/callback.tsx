@@ -19,13 +19,9 @@ export default function AuthCallbackScreen() {
 
       const { data, error } = await supabase.auth.exchangeCodeForSession(token)
 
-      if (error) {
-        Alert.alert("Login failed", error.message)
-        router.replace("/(tabs)/register")
-      } else {
-        // Redirect to home page or wherever appropriate
-        router.replace("/")
-      }
+      if (error) { Alert.alert("Login failed", error.message) }
+
+      router.replace("/(tabs)/register")
     }
 
     handleAuthRedirect()

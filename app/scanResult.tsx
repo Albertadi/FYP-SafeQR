@@ -5,6 +5,7 @@ import ReportScanModal from "@/components/scanHistory/ReportScanModal";
 import ResultTemplate from "@/components/scanner/Results";
 import { getScanByID, type QRScan } from "@/controllers/scanController";
 import type { ParsedQRContent, QRContentType } from "@/utils/qrParser"; // Import parseQrContent and types
+import { supabase } from "@/utils/supabase";
 
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -26,6 +27,31 @@ export default function ScanResultScreen() {
   const [userAcknowledge, setUserAcknowledge] = useState(false)
   const [reportModalVisible, setReportModalVisible] = useState(false)
   const [selectedScan, setSelectedScan] = useState<QRScan | null>(null)
+  const [session, setSession] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+   useEffect(() => {
+      // Check authentication state
+      const checkAuth = async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+  
+        setSession(session)
+        setLoading(false)
+      }
+  
+      checkAuth()
+  
+      // Listen for auth changes
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session)
+      })
+  
+      return () => subscription.unsubscribe()
+    }, [])
 
   // Parse parsedData back into an object
   let parsedContentData: ParsedQRContent["data"] | undefined
@@ -163,7 +189,7 @@ export default function ScanResultScreen() {
         onOpenSandbox={handleOpenInSandbox}
         onCopyText={handleCopyText}
         onShareLink={handleShareLink}
-        onReport={handleReport}
+        onReport={session ? handleReport : undefined}
       />
 
       <ReportScanModal
