@@ -1,12 +1,12 @@
 "use client"
 
+import QrDisplayModal from "@/components/qr/QrDisplayModal"
 import { IconSymbol } from "@/components/ui/IconSymbol"
 import { Colors } from "@/constants/Colors"
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { checkUrlSafetyComprehensive } from "@/utils/urlSafetyChecker"
 import { useState } from "react"
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
-import QRCode from "react-native-qrcode-svg"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function GenerateQRScreen() {
@@ -19,6 +19,7 @@ export default function GenerateQRScreen() {
   const [loading, setLoading] = useState(false)
   const [qrValue, setQrValue] = useState("")
   const [showQR, setShowQR] = useState(false)
+  const [showQrModal, setShowQrModal] = useState(false)
 
   const validateUrl = (inputUrl: string): boolean => {
     try {
@@ -76,7 +77,7 @@ export default function GenerateQRScreen() {
       // URL is safe, generate QR code
       setQrValue(normalizedUrl)
       setShowQR(true)
-      Alert.alert("Success", "QR code generated successfully! Both security checks passed.")
+      setShowQrModal(true) // Show the modal
     } catch (error: any) {
       console.error("Error during security check:", error)
       Alert.alert("Error", error.message || "Failed to verify URL safety")
@@ -90,6 +91,7 @@ export default function GenerateQRScreen() {
     setShowQR(false)
     setQrValue("")
     setUrl("")
+    setShowQrModal(false) // Close the modal
   }
 
   return (
@@ -145,44 +147,6 @@ export default function GenerateQRScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* QR Code Display Section */}
-        {showQR && qrValue && (
-          <View style={styles.qrSection}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Your QR Code</Text>
-            <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>
-              Security verified ✓ Safe to share
-            </Text>
-
-            <View style={[styles.qrContainer, { backgroundColor: colors.cardBackground }]}>
-              <QRCode
-                value={qrValue}
-                size={200}
-                color="#000"
-                backgroundColor="#fff"
-                logo={require("@/assets/images/branding/safeQR-logo.png")}
-                logoSize={40}
-                logoBackgroundColor="transparent"
-                logoMargin={2}
-                logoBorderRadius={8}
-              />
-            </View>
-
-            <View style={styles.urlDisplay}>
-              <Text style={[styles.urlLabel, { color: colors.secondaryText }]}>Generated for:</Text>
-              <Text style={[styles.urlText, { color: colors.text }]} numberOfLines={2}>
-                {qrValue}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.clearButton, { backgroundColor: colors.cardBackground }]}
-              onPress={handleClearQR}
-            >
-              <Text style={[styles.clearButtonText, { color: colors.text }]}>Generate New QR Code</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* Security Info Section */}
         <View style={styles.securitySection}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Security Features</Text>
@@ -205,6 +169,8 @@ export default function GenerateQRScreen() {
           </View>
         </View>
       </ScrollView>
+      {/* QR Code Display Modal */}
+      <QrDisplayModal visible={showQrModal} qrValue={qrValue} onClose={handleClearQR} />
     </SafeAreaView>
   )
 }
