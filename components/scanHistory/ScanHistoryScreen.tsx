@@ -24,7 +24,10 @@ export default function ScanHistoryList() {
   const [query, setQuery] = useState("")
   const [sortAsc, setSortAsc] = useState(false)
   const [sortField, setSortField] = useState<"scanned_at" | "decoded_content">("scanned_at")
+<<<<<<< HEAD
 
+=======
+>>>>>>> c54c43c52f3206b1ef0cfe2ba8c35cff0e0f42cb
 
   const [selectedScan, setSelectedScan] = useState<QRScan | null>(null)
   const [showScanDetails, setShowScanDetails] = useState(false)
@@ -136,13 +139,13 @@ export default function ScanHistoryList() {
   }
 
   const handleCopy = async (content: string) => {
-      try {
-        await Clipboard.setStringAsync(content)
-        Alert.alert("Copied", "URL copied to clipboard")
-      } catch (error) {
-        Alert.alert("Error", "Failed to copy URL")
-      }
+    try {
+      await Clipboard.setStringAsync(content)
+      Alert.alert("Copied", "URL copied to clipboard")
+    } catch (error) {
+      Alert.alert("Error", "Failed to copy URL")
     }
+  }
 
 
   if (loading) {
@@ -195,11 +198,16 @@ export default function ScanHistoryList() {
             setSortField((prev) => prev === "scanned_at" ? "decoded_content" : "scanned_at")
           }}>
             <Text style={[styles.sortText, { color: colors.secondaryText }]}>
+<<<<<<< HEAD
               {`Sort: ${sortField === "scanned_at" ? "Date" : "Name"} (${sortAsc ? "Asc" : "Desc"})`}
+=======
+              By: {sortField === "scanned_at" ? "Date" : "Name"}
+>>>>>>> c54c43c52f3206b1ef0cfe2ba8c35cff0e0f42cb
             </Text>
             <IconSymbol name="chevron.left.forwardslash.chevron.right" size={14} color={colors.secondaryText} />
           </TouchableOpacity>
         </View>
+
 
         {/* List */}
         <FlatList
@@ -218,10 +226,10 @@ export default function ScanHistoryList() {
                 onPress={() => handleScanPress(item)}
               >
                 <TouchableOpacity
-  style={styles.iconContainer}
-  onPress={() => handleCopy(item.decoded_content)} // Or whichever content you want to copy
-  activeOpacity={0.7}
->
+                  style={styles.iconContainer}
+                  onPress={() => handleCopy(item.decoded_content)} // Or whichever content you want to copy
+                  activeOpacity={0.7}
+                >
 
                   <IconSymbol name={getScanTypeIcon(item.content_type)} size={24} color={colors.text} />
                 </TouchableOpacity>

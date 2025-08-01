@@ -9,7 +9,7 @@ import { Camera, CameraView } from "expo-camera"
 import { requestMediaLibraryPermissionsAsync } from "expo-image-picker"
 import { useRouter } from "expo-router"
 import React, { useEffect, useState } from "react"
-import { BackHandler, Modal, SafeAreaView, StyleSheet } from "react-native"
+import { ActivityIndicator, Alert, BackHandler, Modal, SafeAreaView, StyleSheet, Text, View } from "react-native"
 
 export default function ScannerScreen() {
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null)
@@ -19,6 +19,7 @@ export default function ScannerScreen() {
   const [translucent, setTranslucent] = useState(false)
   const [torchEnabled, setTorchEnabled] = useState(false)
   const [frameLayout, setFrameLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
+  const [isScanningLoading, setIsScanningLoading] = useState(false) // New loading state
 
   // GetStarted modal states
   const [session, setSession] = useState<any>(null)
@@ -84,7 +85,7 @@ permissions are revoked
       return true
     } catch (err) {
       console.error("Error requesting camera permission:", err)
-      alert("Unable to access the camera. Please try again.") //replace with custom alert
+      Alert.alert("Unable to access the camera. Please try again.") //replace with custom alert
       return false
     }
   }
@@ -105,7 +106,7 @@ permissions are revoked
       return granted
     } catch (err) {
       console.error("Error requesting gallery permission:", err)
-      alert("Unable to access the photo library. Please try again.") // replace with custom alert
+      Alert.alert("Unable to access the photo library. Please try again.") // replace with custom alert
       return false
     }
   }
@@ -124,7 +125,7 @@ Resets scanned status to prevent scanner from remaining disabled under these con
   }
 
   /*----------------------------------------------------------------------------
-Return to landing page with Android back button. 
+Return to landing page with Android back button.
 ------------------------------------------------------------------------------*/
   useFocusEffect(
     React.useCallback(() => {
@@ -152,7 +153,18 @@ Torch function
 Page Redirect after scanning QR from camera or gallery
 ------------------------------------------------------------------------------*/
   const redirectScans = (
-    result: { status?: string; originalContent?: string; contentType?: string; scan_id?: string; parsedData?: any } | undefined | null,
+    result:
+      | {
+          status?: string
+          originalContent?: string
+          contentType?: string
+          scan_id?: string
+          parsedData?: any
+          googleResult?: "Safe" | "Suspicious" | "Malicious"
+          mlResult?: { prediction: "Safe" | "Suspicious" | "Malicious"; score: number }
+        }
+      | undefined
+      | null,
     source: "camera" | "gallery" = "camera",
   ) => {
     try {
@@ -161,10 +173,12 @@ Page Redirect after scanning QR from camera or gallery
       const contentType = result?.contentType
       const parsedData = result?.parsedData
       const scan_id = result?.scan_id
+      const googleResult = result?.googleResult
+      const mlResult = result?.mlResult
 
       if (!originalContent || !status || !contentType || !parsedData) {
         console.error("Missing data in scan result:", { result }) // Added detailed logging
-        alert("Scan failed or unverified. Please try again.") //replace with custom alert
+        Alert.alert("Scan failed or unverified. Please try again.") //replace with custom alert
         if (source === "camera") setScanned(false)
         return
       }
@@ -172,6 +186,8 @@ Page Redirect after scanning QR from camera or gallery
       if (["safe", "malicious", "suspicious"].includes(status)) {
         // Stringify parsedData to pass as a URL parameter
         const parsedDataString = JSON.stringify(parsedData)
+        const mlResultString = mlResult ? JSON.stringify(mlResult) : undefined
+
         setTimeout(() => {
           router.replace({
             pathname: "/scanResult",
@@ -181,17 +197,19 @@ Page Redirect after scanning QR from camera or gallery
               contentType,
               parsedData: parsedDataString, // Pass stringified data
               scan_id,
+              googleResult: googleResult || undefined,
+              mlResult: mlResultString || undefined,
             },
           })
         }, 0)
       } else {
         console.log(`Unknown scan status encountered while redirecting scans: ${status}`)
-        alert("Scan failed or unverified. Please try again.") //replace with custom alert
+        Alert.alert("Scan failed or unverified. Please try again.") //replace with custom alert
         if (source === "camera") setScanned(false)
       }
     } catch (err) {
       console.error("Redirect scan error:", err)
-      alert("An unexpected error occurred during redirection. Please try again.") //replace with custom alert
+      Alert.alert("An unexpected error occurred during redirection. Please try again.") //replace with custom alert
       if (source === "camera") setScanned(false)
     }
   }
@@ -231,14 +249,16 @@ Index tab display
               const granted = await checkGalleryPermission()
               if (!granted) return
 
+              setIsScanningLoading(true) // Set loading true before gallery scan
               try {
                 const result = await pickImageAndScan(handleQRScanned)
                 redirectScans(result, "gallery")
               } catch (err) {
                 console.error("Gallery scan error:", err)
-                alert("An unexpected error occurred. Please try again.") //replace with custom alert
+                Alert.alert("An unexpected error occurred. Please try again.") //replace with custom alert
               } finally {
                 onGalleryScanComplete()
+                setIsScanningLoading(false) // Reset loading after gallery scan
               }
             }}
           />
@@ -248,6 +268,14 @@ Index tab display
         <Modal visible={showGetStartedModal} animationType="slide" presentationStyle="pageSheet">
           <GetStarted onProceedAsGuest={handleProceedAsGuest} />
         </Modal>
+
+        {/* Loading Overlay */}
+        {isScanningLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text style={styles.loadingText}>Scanning and verifying...</Text>
+          </View>
+        )}
       </>
     )
   }
@@ -263,17 +291,19 @@ Index tab display
               scanned
                 ? undefined
                 : async (event) => {
-                    // Changed to receive the full event object
                     setScanned(true) // Prevents camera from non-stop scanning while loading next screen
                     // Check for 'raw' property, which seems to contain the unparsed string
                     const rawContent = event.raw || event.data // Use raw if available, otherwise fallback to data
 
+                    setIsScanningLoading(true) // Set loading true before camera scan
                     try {
                       const result = await handleQRScanned({ type: event.type, data: rawContent }) // Pass rawContent
                       redirectScans(result, "camera")
                     } catch (err) {
                       console.error("Live camera scan error:", err)
-                      alert("An unexpected error occurred. Please try again.") //replace with custom alert
+                      Alert.alert("An unexpected error occurred. Please try again.") //replace with custom alert
+                    } finally {
+                      setIsScanningLoading(false) // Reset loading after camera scan
                     }
                   }
             }
@@ -289,27 +319,25 @@ Index tab display
               frameLayout={frameLayout} // Pass measured frameLayout for live camera cutout
               torchEnabled={torchEnabled}
               onPressCamera={async () => {
-                // Resets everything to default values
-                const granted = await checkCameraPermission()
-                if (!granted) return
-
-                setShowLanding(false)
                 setTranslucent(false)
-                setTorchEnabled(false)
+                setShowLanding(true)
+                setTorchEnabled(false) // Turn off torch when closing camera
               }}
               onToggleFlashlight={toggleTorch} // Toggles torch added in camera view
               onPressGallery={async () => {
                 // Calls functions from scanner.ts to handle scans from gallery. After scan, prepare for next QR scan
                 const granted = await checkGalleryPermission()
                 if (!granted) return
+                setIsScanningLoading(true) // Set loading true before gallery scan
                 try {
                   const result = await pickImageAndScan(handleQRScanned)
                   redirectScans(result, "gallery")
                 } catch (err) {
                   console.error("Gallery scan error:", err)
-                  alert("An unexpected error occurred. Please try again.") //replace with custom alert
+                  Alert.alert("An unexpected error occurred. Please try again.") //replace with custom alert
                 } finally {
                   onGalleryScanComplete()
+                  setIsScanningLoading(false) // Reset loading after gallery scan
                 }
               }}
             />
@@ -320,6 +348,14 @@ Index tab display
       <Modal visible={showGetStartedModal} animationType="slide" presentationStyle="pageSheet">
         <GetStarted onProceedAsGuest={handleProceedAsGuest} />
       </Modal>
+
+      {/* Loading Overlay */}
+      {isScanningLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.loadingText}>Scanning and verifying...</Text>
+        </View>
+      )}
     </>
   )
 }
@@ -329,5 +365,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.8)", // Semi-transparent white background
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000, // Ensure it's on top
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#333",
   },
 })

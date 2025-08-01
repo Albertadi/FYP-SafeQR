@@ -14,13 +14,15 @@ import { Alert, Linking, Share } from "react-native"; // Corrected import for Al
 
 export default function ScanResultScreen() {
   const router = useRouter()
-  // Update useLocalSearchParams to receive all new params
-  const { type, originalContent, contentType, parsedData, scan_id } = useLocalSearchParams<{
+  // Update useLocalSearchParams to receive all new params including API results
+  const { type, originalContent, contentType, parsedData, scan_id, googleResult, mlResult } = useLocalSearchParams<{
     type: string
     originalContent: string
     contentType: QRContentType // Use the imported type
     parsedData: string // It will be a stringified JSON
     scan_id: string
+    googleResult?: string
+    mlResult?: string // JSON stringified ML result
   }>()
 
   const [canPerformAction, setCanPerformAction] = useState(false) // Renamed from validURL
@@ -30,28 +32,28 @@ export default function ScanResultScreen() {
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-   useEffect(() => {
-      // Check authentication state
-      const checkAuth = async () => {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-  
-        setSession(session)
-        setLoading(false)
-      }
-  
-      checkAuth()
-  
-      // Listen for auth changes
+  useEffect(() => {
+    // Check authentication state
+    const checkAuth = async () => {
       const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
-        setSession(session)
-      })
-  
-      return () => subscription.unsubscribe()
-    }, [])
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      setSession(session)
+      setLoading(false)
+    }
+
+    checkAuth()
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Parse parsedData back into an object
   let parsedContentData: ParsedQRContent["data"] | undefined
@@ -61,6 +63,21 @@ export default function ScanResultScreen() {
     }
   } catch (e) {
     console.error("Failed to parse parsedData JSON:", e)
+  }
+
+  // Parse API results
+  let parsedGoogleResult: "Safe" | "Suspicious" | "Malicious" | undefined
+  let parsedMLResult: { prediction: "Safe" | "Suspicious" | "Malicious"; score: number } | undefined
+
+  try {
+    if (googleResult) {
+      parsedGoogleResult = googleResult as "Safe" | "Suspicious" | "Malicious"
+    }
+    if (mlResult) {
+      parsedMLResult = JSON.parse(mlResult)
+    }
+  } catch (e) {
+    console.error("Failed to parse API results:", e)
   }
 
   useEffect(() => {
@@ -93,7 +110,7 @@ export default function ScanResultScreen() {
   const handleAcknowledge = () => setUserAcknowledge(true)
 
   const handleOpenInSandbox = () => {
-    router.push({ pathname: "/sandboxPreview", params: { url: encodeURIComponent(originalContent) } });
+    router.push({ pathname: "/sandboxPreview", params: { url: encodeURIComponent(originalContent) } })
   }
 
   const handleCopyText = async () => {
@@ -190,6 +207,8 @@ export default function ScanResultScreen() {
         onCopyText={handleCopyText}
         onShareLink={handleShareLink}
         onReport={session ? handleReport : undefined}
+        googleResult={parsedGoogleResult}
+        mlResult={parsedMLResult}
       />
 
       <ReportScanModal
@@ -197,8 +216,8 @@ export default function ScanResultScreen() {
         scan={selectedScan}
         onClose={() => setReportModalVisible(false)}
         onReportSubmitted={() => {
-          setReportModalVisible(false);
-          Alert.alert("Report Submitted", "Thank you for reporting this content.");
+          setReportModalVisible(false)
+          Alert.alert("Report Submitted", "Thank you for reporting this content.")
         }}
       />
     </>

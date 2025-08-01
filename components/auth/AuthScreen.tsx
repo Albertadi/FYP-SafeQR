@@ -13,6 +13,7 @@ import { useColorScheme } from "@/hooks/useColorScheme"
 import { useEffect, useState } from "react"
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
+import { supabase } from "@/utils/supabase";
 
 interface AuthScreenProps {
   onDone: () => void
@@ -34,6 +35,13 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
   const [confirmNewPassword, setConfirmNewPassword] = useState("")
   const [username, setUsername] = useState("")
   const [loading, setLoading] = useState(false)
+  const [passwordValidations, setPasswordValidations] = useState({
+  length: false,
+  upper: false,
+  lower: false,
+  number: false,
+  special: false,
+})
 
   // Listen for password recovery events
   useEffect(() => {
@@ -65,6 +73,19 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
     }
   }
 
+  function validatePasswordLive(password: string) {
+    const length = password.length >= 8
+    const upper = /[A-Z]/.test(password)
+    const lower = /[a-z]/.test(password)
+    const number = /[0-9]/.test(password)
+    const special = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+
+    setPasswordValidations({ length, upper, lower, number, special })
+
+    return length && upper && lower && number && special
+  }
+
+
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword || !username) {
       Alert.alert("Error", "Please fill in all fields")
@@ -79,6 +100,30 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
     if (password.length < 6) {
       Alert.alert("Error", "Password must be at least 6 characters long")
       return
+    }
+    if (!validatePasswordLive(password)) {
+    Alert.alert(
+      "Weak Password",
+      "Password must have at least 8 characters, include uppercase, lowercase, number, and special symbol."
+      )
+      return
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+
+    const pwdCheck = validatePassword(password);
+    if (!pwdCheck.isValid) {
+      Alert.alert("Weak Password", "Please meet all password requirements.");
+      return;
+    }
+
+    if (error) {
+      Alert.alert("Sign Up Failed", error.message)
+    } else {
+      Alert.alert("Success", "Check your email for verification.")
     }
 
     setLoading(true)
@@ -184,6 +229,28 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
       </View>
     </View>
   )
+  
+  const validatePassword = (password: string) => {
+  const minLength = /.{8,}/;
+  const upper = /[A-Z]/;
+  const lower = /[a-z]/;
+  const number = /[0-9]/;
+  const special = /[^A-Za-z0-9]/;
+
+  return {
+    minLength: minLength.test(password),
+    upper: upper.test(password),
+    lower: lower.test(password),
+    number: number.test(password),
+    special: special.test(password),
+    isValid:
+      minLength.test(password) &&
+      upper.test(password) &&
+      lower.test(password) &&
+      number.test(password) &&
+      special.test(password),
+  };
+};
 
   const renderSignUpScreen = () => (
     <View style={styles.content}>
@@ -227,6 +294,29 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
           onChangeText={setConfirmPassword}
           secureTextEntry
         />
+
+        {password.length > 0 && (
+          <View style={{ marginBottom: 10 }}>
+            {[
+              { label: "At least 8 characters", valid: validatePassword(password).minLength },
+              { label: "At least one uppercase letter", valid: validatePassword(password).upper },
+              { label: "At least one lowercase letter", valid: validatePassword(password).lower },
+              { label: "At least one number", valid: validatePassword(password).number },
+              { label: "At least one special character", valid: validatePassword(password).special },
+            ].map((rule, idx) => (
+              <Text
+                key={idx}
+                style={{
+                  color: rule.valid ? "green" : "red",
+                  fontSize: 12,
+                }}
+              >
+                • {rule.label}
+              </Text>
+            ))}
+          </View>
+        )}
+
 
         <TouchableOpacity
           style={[styles.primaryButton, { backgroundColor: "#000" }]}

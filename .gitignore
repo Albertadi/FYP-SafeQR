@@ -26,6 +26,7 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 eas.json
+android
 
 # macOS
 .DS_Store

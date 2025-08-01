@@ -1,9 +1,11 @@
+"use client"
+
 // components/Results.tsx
 
 import type { ParsedQRContent, QRContentType } from "@/utils/qrParser"
 import { Ionicons } from "@expo/vector-icons"
 
-import React, { useState } from "react"
+import { useState } from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 type Props = {
@@ -20,7 +22,9 @@ type Props = {
   onCopyText?: () => void
   onShareLink?: () => void
   onReport?: () => void
-
+  // New props for API results
+  googleResult?: "Safe" | "Suspicious" | "Malicious"
+  mlResult?: { prediction: "Safe" | "Suspicious" | "Malicious"; score: number }
 }
 
 const statusConfig = {
@@ -62,6 +66,8 @@ export default function ResultTemplate({
   onCopyText,
   onShareLink,
   onReport,
+  googleResult,
+  mlResult,
 }: Props) {
   const config = statusConfig[status]
   const isSafe = status === "safe"
@@ -129,6 +135,32 @@ export default function ResultTemplate({
     }
   }
 
+  const getApiResultIcon = (result: "Safe" | "Suspicious" | "Malicious") => {
+    switch (result) {
+      case "Safe":
+        return "checkmark-circle"
+      case "Suspicious":
+        return "help-circle"
+      case "Malicious":
+        return "close-circle"
+      default:
+        return "help-circle"
+    }
+  }
+
+  const getApiResultColor = (result: "Safe" | "Suspicious" | "Malicious") => {
+    switch (result) {
+      case "Safe":
+        return "#4CAF50"
+      case "Suspicious":
+        return "#FF9800"
+      case "Malicious":
+        return "#F44336"
+      default:
+        return "#666"
+    }
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>SCANNING COMPLETE</Text>
@@ -141,6 +173,7 @@ export default function ResultTemplate({
 
       <Text style={styles.contentTypeLabel}>Content Type: {getContentTypeDisplay(contentType)}</Text>
       <Text style={styles.url}>{getContentDetailsDisplay(contentType, parsedContent)}</Text>
+
 
       {!isSafe &&
         !acknowledged && ( // Additional confirmation for malicious and suspicious
@@ -170,23 +203,32 @@ export default function ResultTemplate({
             <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
               <TouchableOpacity style={styles.menuOverlay} onPress={closeMenu} activeOpacity={1} />
               <View style={styles.menuDropdown}>
-                <TouchableOpacity onPress={() => {
-                  closeMenu()
-                  onCopyText?.()
-                }} style={styles.menuItem}>
+                <TouchableOpacity
+                  onPress={() => {
+                    closeMenu()
+                    onCopyText?.()
+                  }}
+                  style={styles.menuItem}
+                >
                   <Text style={styles.menuItemText}>Copy Content</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => {
-                  closeMenu()
-                  onShareLink?.()
-                }} style={styles.menuItem}>
+                <TouchableOpacity
+                  onPress={() => {
+                    closeMenu()
+                    onShareLink?.()
+                  }}
+                  style={styles.menuItem}
+                >
                   <Text style={styles.menuItemText}>Share Content</Text>
                 </TouchableOpacity>
                 {onReport && (
-                  <TouchableOpacity onPress={() => {
-                    closeMenu()
-                    onReport?.()
-                  }} style={styles.menuItem}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      closeMenu()
+                      onReport?.()
+                    }}
+                    style={styles.menuItem}
+                  >
                     <Text style={[styles.menuItemText, { color: "#e74c3c" }]}>Report Content</Text>
                   </TouchableOpacity>
                 )}
@@ -195,7 +237,6 @@ export default function ResultTemplate({
           )}
         </View>
       )}
-
 
       {/* Sandbox Button (only for URLs and if not safe) */}
       {contentType === "url" && !isSafe && acknowledged && (
@@ -270,7 +311,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12
+    gap: 12,
   },
   button: {
     paddingHorizontal: 32,
@@ -335,5 +376,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-
+  apiResultsContainer: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 16,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  apiResultsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+    color: "#333",
+  },
+  apiResultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 8,
+  },
+  apiResultLabel: {
+    fontSize: 14,
+    color: "#666",
+    flex: 1,
+  },
+  apiResultValue: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
 })

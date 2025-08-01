@@ -76,7 +76,7 @@ export async function signIn(email: string, password: string) {
  */
 export async function sendPasswordResetEmail(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: "fypsafeqr://reset-password",
+    redirectTo: "https://fyp-safeqradmin.vercel.app/resetpassword"
   })
   if (error) throw error
 }
@@ -89,6 +89,10 @@ export async function updatePasswordFromRecovery(newPassword: string) {
     password: newPassword,
   })
   if (error) throw error
+
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError) throw sessionError
+
   return data
 }
 
@@ -102,6 +106,7 @@ export function onPasswordRecovery(callback: (session: any) => void) {
     }
   })
 }
+
 /**
  * Sign out current user
  */
@@ -148,13 +153,23 @@ export function onAuthStateChange(callback: (event: string, session: any) => voi
 /**
  * Update user auth data (email, password, metadata)
  */
-export async function updateUserAuth(updates: {
-  email?: string
-  password?: string
-  data?: Record<string, any>
-}) {
-  const { error } = await supabase.auth.updateUser(updates)
+export async function updatePassword(password: string) {
+  const { data, error } = await supabase.auth.updateUser({ password })
+
   if (error) throw error
+  return data
+}
+
+export async function updateUsername(userID: string, username: string) {
+  const { data, error } = await supabase
+    .from("users")
+    .update({ username: username })
+    .eq("user_id", userID)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
 }
 
 export async function suspendUser(user_id: string) {
