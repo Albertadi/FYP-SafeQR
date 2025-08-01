@@ -1,0 +1,51 @@
+[33m3c05070[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Name sorting function
+[33m271dfdf[m Merge branch 'main' of https://github.com/Albertadi/FYP-SafeQR
+[33mfda6ad9[m 2
+[33m5b67b03[m Merge pull request #8 from Albertadi/Juliettt
+[33m610bd10[m - Added Suspension and Auto lift Suspension logic - Added Support and FAQ modals
+[33meebf3c5[m - Added Sandbox logic
+[33mad24e9d[m Adjusted scan history to acommodate different content types
+[33m11f5470[m Merge branch 'main' of https://github.com/Albertadi/FYP-SafeQR
+[33mba5bc66[m 1
+[33m2bd8ed8[m Initialized developmental build
+[33m55424cb[m Merge branch 'main' of https://github.com/Albertadi/FYP-SafeQR
+[33m46302e8[m skip
+[33m8cb18a6[m deleted zip file
+[33me4e23db[m Added new content type column, handle different content types
+[33mf96c96c[m 1
+[33m4ff5eca[m Updated icon file structure in app.json
+[33mb22811d[m Restructured components and assets
+[33m4f8e597[m Fixed profile not found error handling and deleted template files
+[33m19fc7a6[m removed placeholder for change profile picture
+[33mad4a40d[m Adjusted edit profile to be only username and password
+[33m1af74dc[m Replaced placeholder logo to live
+[33mde0a885[m added scan detail from history and report feature
+[33m0cbb654[m removed unnecessary profile retrieval
+[33m5bb4ce3[m[33m ([m[1;31morigin/Library[m[33m)[m Integrated google safebrowse api and removed explore
+[33mca77f30[m integrated edit profile api
+[33m797a287[m Adjusted get started modal, added user profile
+[33mb0b3924[m Stable build with get started pop up and improved registration ui
+[33m88d5e06[m Adjusted scan history to have dark mode and to disable in guest mode
+[33m0d71483[m Integrated scan history
+[33md177814[m Merge pull request #7 from Albertadi/Library
+[33m47c6073[m Merge pull request #4 from Albertadi/revert-3-user
+[33mc560c1d[m[33m ([m[1;31morigin/revert-3-user[m[33m)[m Revert "User"
+[33me9fceb9[m - Fixed logic in index.tsx that is causing the permission loop issue
+[33m2ddae41[m Merge pull request #3 from HandsomeRotiJohnCena/user
+[33m75fc906[m Merge branch 'main' into user
+[33m7b8df33[m backend of report QR safe & View Scan History
+[33m31db765[m scan history result + login + logout
+[33m82eea7a[m Removed repetition logic for scan results redirection. Logic is defined in redirectScans now. Consolidated cameraPermissionDenied and galleryPermissionDenied into permissionDenied.tsx Add support for "Open app settings" for iOS and android.
+[33mbde4d6e[m Initialized get started screen
+[33ma401c47[m Removed repetition logic for redirection after scanning QR in index.tsx. Logic is defined as redirectScans function Consolidated landing screens for safe, malicious and suspicious ratings into Results.tsx Added open link function to scanResult.tsx
+[33m28d5b76[m Merge pull request #2 from Juliet/Library
+[33m3c225ac[m Added missing placeholder pages: - /app/cameraPermissionDenied.tsx - /app/galleryPermissionDenied.tsx - /app/maliciousResult.tsx
+[33m4e64fce[m Merge pull request #1 from Juliet/Library
+[33m32bde13[m Added read QR from gallery function Added redirect to scan results function Added template for scan results screens Added landing page for scans with safe ratings Removed library.tsx. Functions are now integrated on scanner.ts and index.tsx Cleaned up index.ts and added comments for code
+[33md427a6a[m Added frontend UI for ScanQR page as LandingOverlay.tsx Cleaned up and refactored index.tsx for integration with LandingOverlay.tsx Added back button functionality for android Added toggleable flash function while scanning QR codes
+[33m6eb4921[m Initialized Register, Sign Up and Home screen
+[33m1466e81[m Scan
+[33mb3aaf55[m Scan
+[33mf8a61ba[m[33m ([m[1;31morigin/Ben[m[33m)[m Modified scanner screen to use camera only when tab is focused
+[33m708f940[m first commit
+[33m453ee2e[m Initial commit
