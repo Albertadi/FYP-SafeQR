@@ -26,28 +26,34 @@ export default function QrDisplayModal({ visible, qrValue, onClose }: QrDisplayM
 
   const qrCodeRef = useRef<ViewShot>(null)
 
-  const handleSaveToGallery = async () => {
-    try {
-      const { status } = await MediaLibrary.requestPermissionsAsync()
-      if (status !== "granted") {
-        Alert.alert("Permission Denied", "Please grant media library permissions to save the QR code.")
-        return
-      }
-
-      if (qrCodeRef.current) {
-        const uri = await qrCodeRef.current.capture()
-        await MediaLibrary.saveToLibraryAsync(uri)
-        Alert.alert("Success", "QR code saved to gallery!")
-      } else {
-        Alert.alert("Error", "Failed to capture QR code image.")
-      }
-    } catch (error) {
-      console.error("Error saving QR code to gallery:", error)
-      Alert.alert("Error", "Failed to save QR code to gallery.")
+const handleSaveToGallery = async () => {
+  try {
+    // 1) Request permission
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Denied", "Please grant media library permissions to save the QR code.");
+      return;
     }
-  }
 
-  return (
+    // 2) Narrow the ref and ensure `capture` exists
+    const viewShotRef = qrCodeRef.current;
+    if (!viewShotRef || typeof viewShotRef.capture !== "function") {
+      Alert.alert("Error", "Failed to capture QR code image.");
+      return;
+    }
+
+    // 3) Capture and save
+    const uri = await viewShotRef.capture();
+    await MediaLibrary.saveToLibraryAsync(uri);
+    Alert.alert("Success", "QR code saved to gallery!");
+  } catch (error) {
+    console.error("Error saving QR code to gallery:", error);
+    Alert.alert("Error", "Failed to save QR code to gallery.");
+  }
+};
+
+
+return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
         {/* Header */}
