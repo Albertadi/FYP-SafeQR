@@ -48,9 +48,13 @@ export default function ScanningOverlay({
             : undefined} />
 
       <TouchableOpacity
-        style={styles.cameraButton}
-        onPress={translucent ? undefined : onPressCamera}>
-        <Ionicons name="camera-outline" size={32} color="black" />
+        style={[styles.cameraButton, translucent && styles.cameraButtonActive]}
+        onPress={onPressCamera}>
+        <Ionicons 
+          name="camera-outline"
+          size={32} 
+          color={translucent ? "white" : "black"} 
+        />
       </TouchableOpacity>
 
       <View style={styles.bottomIcons}>
@@ -102,6 +106,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 40,
+    backgroundColor: 'white',
+  },
+  cameraButtonActive: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   bottomIcons: {
     flexDirection: 'row',

@@ -1,28 +1,25 @@
-"use client"
-
 // components/Results.tsx
+"use client"
 
 import type { ParsedQRContent, QRContentType } from "@/utils/qrParser"
 import { Ionicons } from "@expo/vector-icons"
-
 import { useState } from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 type Props = {
   status: "safe" | "malicious" | "suspicious"
-  originalContent: string // The raw decoded content
+  originalContent: string
   contentType: QRContentType
   parsedContent: ParsedQRContent["data"]
-  canPerformAction?: boolean // Whether the primary action can be performed
-  acknowledged?: boolean // For malicious/suspicious, if user acknowledged risk
+  canPerformAction?: boolean
+  acknowledged?: boolean
   onAcknowledge?: () => void
-  onPerformAction?: () => void // Generic action button handler
+  onPerformAction?: () => void
   onBack: () => void
   onOpenSandbox?: () => void
   onCopyText?: () => void
   onShareLink?: () => void
   onReport?: () => void
-  // New props for API results
   googleResult?: "Safe" | "Suspicious" | "Malicious"
   mlResult?: { prediction: "Safe" | "Suspicious" | "Malicious"; score: number }
 }
@@ -54,7 +51,6 @@ const statusConfig = {
 
 export default function ResultTemplate({
   status,
-  originalContent,
   contentType,
   parsedContent,
   canPerformAction,
@@ -66,98 +62,53 @@ export default function ResultTemplate({
   onCopyText,
   onShareLink,
   onReport,
-  googleResult,
-  mlResult,
 }: Props) {
   const config = statusConfig[status]
   const isSafe = status === "safe"
 
   const [menuVisible, setMenuVisible] = useState(false)
-
   const toggleMenu = () => setMenuVisible(!menuVisible)
   const closeMenu = () => setMenuVisible(false)
 
   const getContentTypeDisplay = (type: QRContentType) => {
     switch (type) {
-      case "url":
-        return "URL"
-      case "sms":
-        return "SMS Message"
-      case "tel":
-        return "Phone Number"
-      case "mailto":
-        return "Email Address"
-      case "wifi":
-        return "Wi-Fi Network"
-      case "text":
-        return "Plain Text"
-      default:
-        return "Unknown"
+      case "url": return "URL"
+      case "sms": return "SMS Message"
+      case "tel": return "Phone Number"
+      case "mailto": return "Email Address"
+      case "wifi": return "Wi-Fi Network"
+      case "text": return "Plain Text"
+      default: return "Unknown"
     }
   }
 
   const getContentDetailsDisplay = (type: QRContentType, data: ParsedQRContent["data"]) => {
     switch (type) {
-      case "url":
-        return data.url
-      case "sms":
-        return `Number: ${data.number || "N/A"}\nMessage: ${data.body || "N/A"}`
-      case "tel":
-        return data.number
+      case "url": return data.url
+      case "sms": return `Number: ${data.number || "N/A"}\nMessage: ${data.body || "N/A"}`
+      case "tel": return data.number
       case "mailto":
-        // Display email, subject, and body
         return `Email: ${data.email || "N/A"}\nSubject: ${data.subject || "N/A"}\nBody: ${data.body || "N/A"}`
       case "wifi":
-        return `SSID: ${data.ssid || "N/A"}\nSecurity: ${data.authentication || "N/A"}\nPassword: ${data.password ? "********" : "None"}`
+        return `SSID: ${data.ssid || "N/A"}\nSecurity: ${data.authentication || "N/A"}\nPassword: ${
+          data.password ? "********" : "None"
+        }`
       case "text":
         return data.text
       default:
-        return data.originalContent
+        return JSON.stringify(data)
     }
   }
 
   const getActionButtonText = (type: QRContentType) => {
     switch (type) {
-      case "url":
-        return "Open Link"
-      case "sms":
-        return "Send SMS"
-      case "tel":
-        return "Call Number"
-      case "mailto":
-        return "Send Email"
-      case "wifi":
-        return "Show Wi-Fi Details" // Changed text for Wi-Fi
-      case "text":
-        return "Copy Text"
-      default:
-        return "Proceed"
-    }
-  }
-
-  const getApiResultIcon = (result: "Safe" | "Suspicious" | "Malicious") => {
-    switch (result) {
-      case "Safe":
-        return "checkmark-circle"
-      case "Suspicious":
-        return "help-circle"
-      case "Malicious":
-        return "close-circle"
-      default:
-        return "help-circle"
-    }
-  }
-
-  const getApiResultColor = (result: "Safe" | "Suspicious" | "Malicious") => {
-    switch (result) {
-      case "Safe":
-        return "#4CAF50"
-      case "Suspicious":
-        return "#FF9800"
-      case "Malicious":
-        return "#F44336"
-      default:
-        return "#666"
+      case "url": return "Open Link"
+      case "sms": return "Send SMS"
+      case "tel": return "Call Number"
+      case "mailto": return "Send Email"
+      case "wifi": return "Show Wi-Fi Details"
+      case "text": return "Copy Text"
+      default: return "Proceed"
     }
   }
 
@@ -167,32 +118,37 @@ export default function ResultTemplate({
 
       <View style={styles.resultBox}>
         <Ionicons name={config.icon as any} size={isSafe ? 60 : 120} color={config.color} style={styles.icon} />
-        <Text style={[styles.title, { color: config.color, fontSize: isSafe ? 18 : 24 }]}>{config.title}</Text>
+        <Text style={[styles.title, { color: config.color, fontSize: isSafe ? 18 : 24 }]}>
+          {config.title}
+        </Text>
         <Text style={styles.message}>{config.message}</Text>
       </View>
 
-      <Text style={styles.contentTypeLabel}>Content Type: {getContentTypeDisplay(contentType)}</Text>
+      <Text style={styles.contentTypeLabel}>
+        Content Type: {getContentTypeDisplay(contentType)}
+      </Text>
       <Text style={styles.url}>{getContentDetailsDisplay(contentType, parsedContent)}</Text>
 
+      {!isSafe && !acknowledged && (
+        <TouchableOpacity
+          style={[styles.warningButton, { backgroundColor: config.buttonColor }]}
+          onPress={onAcknowledge}
+        >
+          <Text style={styles.buttonText}>
+            I Understand These Risks{"\n"}And Wish To Preview
+          </Text>
+        </TouchableOpacity>
+      )}
 
-      {!isSafe &&
-        !acknowledged && ( // Additional confirmation for malicious and suspicious
-          <TouchableOpacity
-            style={[styles.warningButton, { backgroundColor: config.buttonColor }]}
-            onPress={onAcknowledge}
-          >
-            <Text style={styles.buttonText}>I Understand These Risks{"\n"}And Wish To Proceed</Text>
-          </TouchableOpacity>
-        )}
-
-      {/* Primary Action Button */}
       {canPerformAction && isSafe && (
         <View style={styles.buttonsRow}>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: config.buttonColor }]}
             onPress={contentType === "text" ? onCopyText : onPerformAction}
           >
-            <Text style={styles.buttonText}>{getActionButtonText(contentType)}</Text>
+            <Text style={styles.buttonText}>
+              {getActionButtonText(contentType)}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
@@ -204,32 +160,25 @@ export default function ResultTemplate({
               <TouchableOpacity style={styles.menuOverlay} onPress={closeMenu} activeOpacity={1} />
               <View style={styles.menuDropdown}>
                 <TouchableOpacity
-                  onPress={() => {
-                    closeMenu()
-                    onCopyText?.()
-                  }}
+                  onPress={() => { closeMenu(); onCopyText?.() }}
                   style={styles.menuItem}
                 >
                   <Text style={styles.menuItemText}>Copy Content</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => {
-                    closeMenu()
-                    onShareLink?.()
-                  }}
+                  onPress={() => { closeMenu(); onShareLink?.() }}
                   style={styles.menuItem}
                 >
                   <Text style={styles.menuItemText}>Share Content</Text>
                 </TouchableOpacity>
                 {onReport && (
                   <TouchableOpacity
-                    onPress={() => {
-                      closeMenu()
-                      onReport?.()
-                    }}
+                    onPress={() => { closeMenu(); onReport?.() }}
                     style={styles.menuItem}
                   >
-                    <Text style={[styles.menuItemText, { color: "#e74c3c" }]}>Report Content</Text>
+                    <Text style={[styles.menuItemText, { color: "#e74c3c" }]}>
+                      Report Content
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -238,18 +187,24 @@ export default function ResultTemplate({
         </View>
       )}
 
-      {/* Sandbox Button (only for URLs and if not safe) */}
       {contentType === "url" && !isSafe && acknowledged && (
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#e74c3c" }]} // A neutral color for sandbox
+          style={[styles.button, { backgroundColor: "#e74c3c" }]}
           onPress={onOpenSandbox}
         >
           <Text style={styles.buttonText}>Open in Sandbox Environment</Text>
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity onPress={onBack}>
-        <Text style={styles.back}>Back to Scan</Text>
+      {/* extra spacing when safe + action button shown */}
+      <TouchableOpacity
+        onPress={onBack}
+        style={[
+          styles.back,
+          isSafe && canPerformAction && styles.backSpacing,
+        ]}
+      >
+        <Text style={styles.backText}>Back to Scan</Text>
       </TouchableOpacity>
     </View>
   )
@@ -277,14 +232,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 20,
+    padding: 20,
     marginBottom: 24,
     elevation: 2,
   },
-  icon: {
-    marginBottom: 16,
-  },
+  icon: { marginBottom: 16 },
   title: {
     fontWeight: "700",
     textAlign: "center",
@@ -319,15 +271,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   buttonText: {
-    color: "white",
+    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",
-  },
-  back: {
-    color: "#444",
-    fontSize: 15,
-    marginTop: 10,
   },
   warningButton: {
     paddingHorizontal: 32,
@@ -336,26 +283,32 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     opacity: 0.9,
   },
+  back: {
+    marginTop: 10,
+  },
+  backText: {
+    color: "#444",
+    fontSize: 15,
+  },
+  // extra margin for safe+action
+  backSpacing: {
+    marginTop: 32,
+  },
   menuButton: {
-    backgroundColor: "#d0d0d0d0",
+    backgroundColor: "#ccc",
     borderRadius: 20,
     padding: 8,
-    justifyContent: "center",
-    alignItems: "center",
   },
   menuOverlay: {
     position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    top: 0, bottom: 0, left: 0, right: 0,
     backgroundColor: "transparent",
     zIndex: 999,
   },
   menuDropdown: {
     position: "absolute",
-    top: 0, // adjust depending on your layout
-    right: 50, // adjust to align near the button
+    top: 0,
+    right: 50,
     backgroundColor: "#fafafa",
     borderRadius: 8,
     elevation: 5,
@@ -375,34 +328,5 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     color: "#333",
-  },
-  apiResultsContainer: {
-    backgroundColor: "#f8f9fa",
-    borderRadius: 8,
-    padding: 16,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: "#e9ecef",
-  },
-  apiResultsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-    color: "#333",
-  },
-  apiResultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-    gap: 8,
-  },
-  apiResultLabel: {
-    fontSize: 14,
-    color: "#666",
-    flex: 1,
-  },
-  apiResultValue: {
-    fontSize: 14,
-    fontWeight: "600",
   },
 })

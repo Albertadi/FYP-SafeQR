@@ -54,6 +54,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
@@ -69,10 +70,12 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="news"
         options={{
-          title: "Scan",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="qrcode.viewfinder" color={color} />,
+          title: "News",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="newspaper" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -80,6 +83,14 @@ export default function TabLayout() {
         options={{
           title: "Generate QR",
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="shield.checkered" color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Scan",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="qrcode.viewfinder" color={color} />,
         }}
       />
       <Tabs.Screen

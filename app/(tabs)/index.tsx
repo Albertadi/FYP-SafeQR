@@ -252,7 +252,19 @@ Index tab display
               setIsScanningLoading(true) // Set loading true before gallery scan
               try {
                 const result = await pickImageAndScan(handleQRScanned)
-                redirectScans(result, "gallery")
+                
+                // Handle different result scenarios
+                if (result === null) {
+                  // User cancelled image selection - no alert needed
+                  return
+                } else if (result === undefined || (result && !result.originalContent)) {
+                  // Image was selected but no QR code found - show alert
+                  Alert.alert("No QR code found", "The selected image doesn't contain a readable QR code. Please try another image.")
+                  return
+                } else {
+                  // Valid QR code found - proceed with redirect
+                  redirectScans(result, "gallery")
+                }
               } catch (err) {
                 console.error("Gallery scan error:", err)
                 Alert.alert("An unexpected error occurred. Please try again.") //replace with custom alert
@@ -272,8 +284,18 @@ Index tab display
         {/* Loading Overlay */}
         {isScanningLoading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#0000ff" />
-            <Text style={styles.loadingText}>Scanning and verifying...</Text>
+            <View style={styles.loadingContainer}>
+              <View style={styles.loadingSpinner}>
+                <ActivityIndicator size="large" color="#007AFF" />
+              </View>
+              <Text style={styles.loadingTitle}>Scanning QR Code</Text>
+              <Text style={styles.loadingSubtitle}>Analyzing and verifying content...</Text>
+              <View style={styles.loadingDots}>
+                <View style={[styles.dot, styles.dot1]} />
+                <View style={[styles.dot, styles.dot2]} />
+                <View style={[styles.dot, styles.dot3]} />
+              </View>
+            </View>
           </View>
         )}
       </>
@@ -318,7 +340,9 @@ Index tab display
               translucent={true}
               frameLayout={frameLayout} // Pass measured frameLayout for live camera cutout
               torchEnabled={torchEnabled}
-              onPressCamera={async () => {
+              onPressCamera={() => {
+                console.log("Camera button pressed - turning off camera") // Debug log
+                // Turn off camera and return to landing page
                 setTranslucent(false)
                 setShowLanding(true)
                 setTorchEnabled(false) // Turn off torch when closing camera
@@ -331,7 +355,19 @@ Index tab display
                 setIsScanningLoading(true) // Set loading true before gallery scan
                 try {
                   const result = await pickImageAndScan(handleQRScanned)
-                  redirectScans(result, "gallery")
+                  
+                  // Handle different result scenarios
+                  if (result === null) {
+                    // User cancelled image selection - no alert needed
+                    return
+                  } else if (result === undefined || (result && !result.originalContent)) {
+                    // Image was selected but no QR code found - show alert
+                    Alert.alert("No QR code found", "The selected image doesn't contain a readable QR code. Please try another image.")
+                    return
+                  } else {
+                    // Valid QR code found - proceed with redirect
+                    redirectScans(result, "gallery")
+                  }
                 } catch (err) {
                   console.error("Gallery scan error:", err)
                   Alert.alert("An unexpected error occurred. Please try again.") //replace with custom alert
@@ -352,8 +388,18 @@ Index tab display
       {/* Loading Overlay */}
       {isScanningLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#0000ff" />
-          <Text style={styles.loadingText}>Scanning and verifying...</Text>
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingSpinner}>
+              <ActivityIndicator size="large" color="#007AFF" />
+            </View>
+            <Text style={styles.loadingTitle}>Scanning QR Code</Text>
+            <Text style={styles.loadingSubtitle}>Analyzing and verifying content...</Text>
+            <View style={styles.loadingDots}>
+              <View style={[styles.dot, styles.dot1]} />
+              <View style={[styles.dot, styles.dot2]} />
+              <View style={[styles.dot, styles.dot3]} />
+            </View>
+          </View>
         </View>
       )}
     </>
@@ -368,14 +414,64 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.8)", // Semi-transparent white background
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000, // Ensure it's on top
+    zIndex: 1000,
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#333",
+  loadingContainer: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 32,
+    alignItems: "center",
+    minWidth: 280,
+    maxWidth: 320,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  loadingSpinner: {
+    marginBottom: 20,
+    padding: 8,
+  },
+  loadingTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  loadingSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  loadingDots: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#007AFF",
+    marginHorizontal: 3,
+  },
+  dot1: {
+    opacity: 0.4,
+  },
+  dot2: {
+    opacity: 0.7,
+  },
+  dot3: {
+    opacity: 1,
   },
 })

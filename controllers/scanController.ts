@@ -167,36 +167,52 @@ export async function handleQRScanned({ type, data }: { type: string; data: stri
 
 export async function pickImageAndScan(
   handleQRScanned: (result: { type: string; data: string }) => Promise<ScanResult>,
-): Promise<ScanResult> {
+): Promise<ScanResult | null> {
   const result = await launchImageLibraryAsync({
     mediaTypes: ["images"],
     allowsEditing: false,
     quality: 1,
   })
 
-  if (!result.canceled && Array.isArray(result.assets) && result.assets.length > 0) {
-    const uri = result.assets[0].uri
-    if (!uri || typeof uri !== "string") {
-      console.warn("Invalid image URI")
-      return
-    }
-    try {
-      const scanResult = await Camera.scanFromURLAsync(uri, ["qr"])
-      console.log("Gallery Scan")
-      if (Array.isArray(scanResult) && scanResult.length > 0) {
-        const { type, data } = scanResult[0]
-        if (type.toString() === "256" && typeof data === "string") {
-          const qrType = "qr"
-          return handleQRScanned({ type: qrType, data })
-        } else {
-          console.warn("Invalid QR scan result data")
-        }
+  // User cancelled image selection
+  if (result.canceled) {
+    console.log("User cancelled image selection")
+    return null
+  }
+
+  // No assets selected
+  if (!Array.isArray(result.assets) || result.assets.length === 0) {
+    console.warn("No image assets selected")
+    return null
+  }
+
+  const uri = result.assets[0].uri
+  if (!uri || typeof uri !== "string") {
+    console.warn("Invalid image URI")
+    return undefined // Image was selected but URI is invalid
+  }
+
+  try {
+    const scanResult = await Camera.scanFromURLAsync(uri, ["qr"])
+    console.log("Gallery Scan - scanResult:", scanResult)
+    
+    if (Array.isArray(scanResult) && scanResult.length > 0) {
+      const { type, data } = scanResult[0]
+      if (type.toString() === "256" && typeof data === "string") {
+        const qrType = "qr"
+        console.log("QR code found in image, processing...")
+        return await handleQRScanned({ type: qrType, data })
       } else {
-        console.warn("No QR code found in the image")
+        console.warn("Invalid QR scan result data - type:", type, "data:", data)
+        return undefined // Image selected but invalid QR data
       }
-    } catch (err) {
-      console.error("Failed to scan image:", err)
+    } else {
+      console.warn("No QR code found in the selected image")
+      return undefined // Image selected but no QR code found
     }
+  } catch (err) {
+    console.error("Failed to scan image:", err)
+    throw err // Re-throw to be caught by the calling function
   }
 }
 
