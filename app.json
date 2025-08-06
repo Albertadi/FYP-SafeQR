@@ -11,7 +11,10 @@
     "deepLinking": true,
     "extra": {
       "supabaseRedirectUrl": "fypsafeqr://callback",
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "243ad58a-50dd-466e-a8dd-a2952e1633a0"
+      }
     },
     "ios": {
       "supportsTablet": true
@@ -49,26 +52,33 @@
                 {
                   "intent": {
                     "action": "android.intent.action.VIEW",
-                    "data": { "scheme": "sms" }
+                    "data": {
+                      "scheme": "sms"
+                    }
                   }
                 },
                 {
                   "intent": {
                     "action": "android.intent.action.DIAL",
-                    "data": { "scheme": "tel" }
+                    "data": {
+                      "scheme": "tel"
+                    }
                   }
                 },
                 {
                   "intent": {
                     "action": "android.intent.action.SENDTO",
-                    "data": { "scheme": "mailto" }
+                    "data": {
+                      "scheme": "mailto"
+                    }
                   }
                 }
               ]
             }
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
