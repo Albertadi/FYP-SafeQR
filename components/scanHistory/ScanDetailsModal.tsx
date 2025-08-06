@@ -304,6 +304,10 @@ export default function ScanDetailsModal({ visible, scan, onClose }: ScanDetails
                     <Text style={[styles.actionButtonText, { color: "#fff" }]}>Open in Sandbox</Text>
                   </TouchableOpacity>
 
+                  <TouchableOpacity style={[styles.reportButton, { backgroundColor: "#F44336" }]} onPress={() => setShowReportModal(true)}>
+                    <Text style={[styles.actionButtonText, { color: "#fff" }]}>Report Scan</Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#000" }]} onPress={onClose}>
                     <Text style={[styles.actionButtonText, { color: "#fff" }]}>Back to Scan History</Text>
                   </TouchableOpacity>
