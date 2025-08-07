@@ -13,7 +13,6 @@ import { useColorScheme } from "@/hooks/useColorScheme"
 import { useEffect, useState } from "react"
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
-import { supabase } from "@/utils/supabase";
 
 interface AuthScreenProps {
   onDone: () => void
@@ -107,23 +106,6 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
       "Password must have at least 8 characters, include uppercase, lowercase, number, and special symbol."
       )
       return
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-
-    const pwdCheck = validatePassword(password);
-    if (!pwdCheck.isValid) {
-      Alert.alert("Weak Password", "Please meet all password requirements.");
-      return;
-    }
-
-    if (error) {
-      Alert.alert("Sign Up Failed", error.message)
-    } else {
-      Alert.alert("Success", "Check your email for verification.")
     }
 
     setLoading(true)
