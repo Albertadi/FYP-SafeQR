@@ -153,45 +153,47 @@ export default function ResultTemplate({
           )}
 
           {contentType === "url" && !isSafe && acknowledged && (
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#e74c3c" }]}
-          onPress={onOpenSandbox}
-        >
-          <Text style={styles.buttonText}>Open in Sandbox Environment</Text>
-        </TouchableOpacity>
-      )}
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: "#e74c3c" }]}
+              onPress={onOpenSandbox}
+            >
+              <Text style={styles.buttonText}>Open in Sandbox Environment</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-            <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
-          </TouchableOpacity>
+          {(isSafe || onReport) && (
+            <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+              <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
 
           {menuVisible && (
             <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
               <TouchableOpacity style={styles.menuOverlay} onPress={closeMenu} activeOpacity={1} />
               <View style={styles.menuDropdown}>
-               {isSafe && (
-        <>
-          <TouchableOpacity
-            onPress={() => {
-              closeMenu()
-              onCopyText?.()
-            }}
-            style={styles.menuItem}
-          >
-            <Text style={styles.menuItemText}>Copy Content</Text>
-          </TouchableOpacity>
+                {isSafe && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => {
+                        closeMenu()
+                        onCopyText?.()
+                      }}
+                      style={styles.menuItem}
+                    >
+                      <Text style={styles.menuItemText}>Copy Content</Text>
+                    </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => {
-              closeMenu()
-              onShareLink?.()
-            }}
-            style={styles.menuItem}
-          >
-            <Text style={styles.menuItemText}>Share Content</Text>
-          </TouchableOpacity>
-        </>
-      )}
+                    <TouchableOpacity
+                      onPress={() => {
+                        closeMenu()
+                        onShareLink?.()
+                      }}
+                      style={styles.menuItem}
+                    >
+                      <Text style={styles.menuItemText}>Share Content</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
 
                 {onReport && (
                   <TouchableOpacity
