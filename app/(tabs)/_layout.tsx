@@ -33,12 +33,6 @@ export default function TabLayout() {
 
     // Listen for auth changes
     const { data } = onAuthStateChange((_event, session) => {
-      if (_event === "PASSWORD_RECOVERY") {
-        console.log("Navigating to password reset screen...")
-        router.replace("/reset-password")
-        return
-      }
-
       if (!session && lastSignOutDueToSuspension) {
         const untilDate = lastSuspensionEndDate ? ` until ${new Date(lastSuspensionEndDate).toLocaleString()}` : ""
 

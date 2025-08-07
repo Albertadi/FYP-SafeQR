@@ -1,16 +1,16 @@
 "use client"
 
 import { IconSymbol } from "@/components/ui/IconSymbol"
+import KeyboardAvoidingWrapper from "@/components/ui/KeyboardAvoidingWrapper"
 import { Colors } from "@/constants/Colors"
 import {
-  onPasswordRecovery,
   register,
   sendPasswordResetEmail,
-  signIn,
-  updatePasswordFromRecovery,
+  signIn
 } from "@/controllers/authController"
 import { useColorScheme } from "@/hooks/useColorScheme"
-import { useEffect, useState } from "react"
+import { validatePassword } from "@/utils/passwordComplexityChecker"
+import { useState } from "react"
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -35,25 +35,12 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
   const [username, setUsername] = useState("")
   const [loading, setLoading] = useState(false)
   const [passwordValidations, setPasswordValidations] = useState({
-  length: false,
-  upper: false,
-  lower: false,
-  number: false,
-  special: false,
-})
-
-  // Listen for password recovery events
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = onPasswordRecovery((session) => {
-      if (session) {
-        setMode("resetPassword")
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+    length: false,
+    upper: false,
+    lower: false,
+    number: false,
+    special: false,
+  })
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -73,15 +60,9 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
   }
 
   function validatePasswordLive(password: string) {
-    const length = password.length >= 8
-    const upper = /[A-Z]/.test(password)
-    const lower = /[a-z]/.test(password)
-    const number = /[0-9]/.test(password)
-    const special = /[!@#$%^&*(),.?":{}|<>]/.test(password)
-
-    setPasswordValidations({ length, upper, lower, number, special })
-
-    return length && upper && lower && number && special
+    const validations = validatePassword(password)
+    setPasswordValidations(validations)
+    return validations.isValid
   }
 
 
@@ -96,14 +77,11 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
       return
     }
 
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long")
-      return
-    }
+
     if (!validatePasswordLive(password)) {
-    Alert.alert(
-      "Weak Password",
-      "Password must have at least 8 characters, include uppercase, lowercase, number, and special symbol."
+      Alert.alert(
+        "Weak Password",
+        "Password must have at least 8 characters, include uppercase, lowercase, number, and special symbol."
       )
       return
     }
@@ -130,33 +108,6 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
     try {
       await sendPasswordResetEmail(email)
       setMode("emailSent")
-    } catch (error: any) {
-      Alert.alert("Error", error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleResetPassword = async () => {
-    if (!newPassword || !confirmNewPassword) {
-      Alert.alert("Error", "Please fill in all fields")
-      return
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      Alert.alert("Error", "Passwords do not match")
-      return
-    }
-
-    if (newPassword.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long")
-      return
-    }
-
-    setLoading(true)
-    try {
-      await updatePasswordFromRecovery(newPassword)
-      Alert.alert("Success", "Password has been reset successfully!", [{ text: "OK", onPress: () => setMode("login") }])
     } catch (error: any) {
       Alert.alert("Error", error.message)
     } finally {
@@ -211,28 +162,6 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
       </View>
     </View>
   )
-  
-  const validatePassword = (password: string) => {
-  const minLength = /.{8,}/;
-  const upper = /[A-Z]/;
-  const lower = /[a-z]/;
-  const number = /[0-9]/;
-  const special = /[^A-Za-z0-9]/;
-
-  return {
-    minLength: minLength.test(password),
-    upper: upper.test(password),
-    lower: lower.test(password),
-    number: number.test(password),
-    special: special.test(password),
-    isValid:
-      minLength.test(password) &&
-      upper.test(password) &&
-      lower.test(password) &&
-      number.test(password) &&
-      special.test(password),
-  };
-};
 
   const renderSignUpScreen = () => (
     <View style={styles.content}>
@@ -280,7 +209,7 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
         {password.length > 0 && (
           <View style={{ marginBottom: 10 }}>
             {[
-              { label: "At least 8 characters", valid: validatePassword(password).minLength },
+              { label: "At least 8 characters", valid: validatePassword(password).length },
               { label: "At least one uppercase letter", valid: validatePassword(password).upper },
               { label: "At least one lowercase letter", valid: validatePassword(password).lower },
               { label: "At least one number", valid: validatePassword(password).number },
@@ -384,64 +313,16 @@ export default function AuthScreen({ onDone }: AuthScreenProps) {
     </View>
   )
 
-  const renderResetPasswordScreen = () => (
-    <View style={styles.content}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Reset Password</Text>
-        <Text style={[styles.subtitle, { color: colors.secondaryText }]}>Please enter your new password below.</Text>
-      </View>
-
-      <View style={styles.form}>
-        <TextInput
-          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
-          placeholder="New Password"
-          placeholderTextColor={colors.placeholderText}
-          value={newPassword}
-          onChangeText={setNewPassword}
-          secureTextEntry
-        />
-
-        <TextInput
-          style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
-          placeholder="Confirm New Password"
-          placeholderTextColor={colors.placeholderText}
-          value={confirmNewPassword}
-          onChangeText={setConfirmNewPassword}
-          secureTextEntry
-        />
-
-        <View style={styles.passwordRequirements}>
-          <Text style={[styles.requirementText, { color: colors.secondaryText }]}>
-            Password must be at least 6 characters long
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: "#000" }]}
-          onPress={handleResetPassword}
-          disabled={loading}
-        >
-          <Text style={[styles.primaryButtonText, { color: "#fff" }]}>
-            {loading ? "Updating..." : "Update Password"}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => setMode("login")} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={16} color={colors.secondaryText} />
-          <Text style={[styles.backText, { color: colors.secondaryText }]}>Back to log in</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  )
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      {mode === "login" && renderLoginScreen()}
-      {mode === "signup" && renderSignUpScreen()}
-      {mode === "forgot" && renderForgotScreen()}
-      {mode === "emailSent" && renderEmailSentScreen()}
-      {mode === "resetPassword" && renderResetPasswordScreen()}
-    </SafeAreaView>
+    <KeyboardAvoidingWrapper style={{ backgroundColor: colors.background}} textInputValue={password}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        {mode === "login" && renderLoginScreen()}
+        {mode === "signup" && renderSignUpScreen()}
+        {mode === "forgot" && renderForgotScreen()}
+        {mode === "emailSent" && renderEmailSentScreen()}
+      </SafeAreaView>
+    </KeyboardAvoidingWrapper>
   )
 }
 

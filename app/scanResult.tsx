@@ -10,7 +10,7 @@ import { supabase } from "@/utils/supabase";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Linking, Share } from "react-native"; // Corrected import for Alert
+import { Alert, Linking, ScrollView, Share } from "react-native"; // Corrected import for Alert
 
 export default function ScanResultScreen() {
   const router = useRouter()
@@ -192,7 +192,8 @@ export default function ScanResultScreen() {
   if (!type || !originalContent || !contentType || !parsedContentData) return null
 
   return (
-    <>
+    <ScrollView
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: 50, backgroundColor: "#FFF" }}>
       <ResultTemplate
         status={type as "safe" | "malicious" | "suspicious"}
         originalContent={originalContent}
@@ -220,6 +221,6 @@ export default function ScanResultScreen() {
           Alert.alert("Report Submitted", "Thank you for reporting this content.")
         }}
       />
-    </>
+    </ScrollView>
   )
 }
