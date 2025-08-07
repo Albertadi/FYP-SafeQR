@@ -249,7 +249,6 @@ export default function ReportHistoryScreen({ onBack }: ReportHistoryScreenProps
                   </Text>
                 </View>
               </View>
-              <IconSymbol name="chevron.right" size={20} color={colors.secondaryText} />
             </View>
           </View>
         )}
