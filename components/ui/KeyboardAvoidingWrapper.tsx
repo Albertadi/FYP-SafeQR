@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react"
 import {
     Keyboard,
     KeyboardAvoidingView,
@@ -8,18 +8,21 @@ import {
     StyleSheet,
     TouchableWithoutFeedback,
     ViewStyle,
-} from "react-native";
+} from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 type Props = {
     children: React.ReactNode
     style?: ViewStyle
     scrollProps?: ScrollViewProps
     textInputValue?: string;
+    keyboardVerticalOffset?: number
+
 }
 
-const KeyboardAvoidingWrapper = ({ children, style, scrollProps, textInputValue }: Props) => {
+const KeyboardAvoidingWrapper = ({ children, style, scrollProps, textInputValue, keyboardVerticalOffset }: Props) => {
     const behavior = Platform.OS === "ios" ? "padding" : "height"
-    const keyboardVerticalOffset = 80
+    const resolveKeyboardVerticalOffset =  Platform.OS === "ios" ? 0 : keyboardVerticalOffset ?? 0;
 
     const [isTyping, setIsTyping] = useState(false);
     const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,20 +68,25 @@ const KeyboardAvoidingWrapper = ({ children, style, scrollProps, textInputValue 
     return (
         <KeyboardAvoidingView
             behavior={behavior}
-            keyboardVerticalOffset={keyboardVerticalOffset}
-            style={[styles.container, style]}
+            keyboardVerticalOffset={resolveKeyboardVerticalOffset}
+            style={[styles.keyboardAvoidingView, { backgroundColor: style?.backgroundColor }]}
         >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <ScrollView
-                    ref={scrollViewRef}
-                    contentContainerStyle={[scrollProps?.contentContainerStyle]}
-                    keyboardShouldPersistTaps="handled"
-                    scrollEnabled={isTyping}
-                    {...scrollProps}
-                >
-                    {children}
-                </ScrollView>
-            </TouchableWithoutFeedback>
+            <SafeAreaView style={[styles.safeArea, { backgroundColor: style?.backgroundColor }]}>
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <ScrollView
+                        ref={scrollViewRef}
+                        contentContainerStyle={[
+                            { flexGrow: 1, backgroundColor: style?.backgroundColor },
+                            scrollProps?.contentContainerStyle,
+                        ]}
+                        keyboardShouldPersistTaps="handled"
+                        scrollEnabled={isTyping}
+                        {...scrollProps}
+                    >
+                        {children}
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+            </SafeAreaView>
         </KeyboardAvoidingView>
     )
 }
@@ -86,7 +94,10 @@ const KeyboardAvoidingWrapper = ({ children, style, scrollProps, textInputValue 
 export default KeyboardAvoidingWrapper
 
 const styles = StyleSheet.create({
-    container: {
+    keyboardAvoidingView: {
+        flex: 1
+    },
+    safeArea: {
         flex: 1,
     },
 })
