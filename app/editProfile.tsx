@@ -1,13 +1,12 @@
 "use client"
 
 import { IconSymbol } from "@/components/ui/IconSymbol"
+import KeyboardAvoidingWrapper from "@/components/ui/KeyboardAvoidingWrapper"
 import { Colors } from "@/constants/Colors"
-import { getCurrentSession, /*updatePasswordWithTimeout*/ updatePassword, updateUsername } from "@/controllers/authController"
-import {
-  getUserProfile,
-  type UserProfile
-} from "@/controllers/userProfileController"
+import { getCurrentSession, updatePassword, updateUsername } from "@/controllers/authController"
+import { getUserProfile, type UserProfile } from "@/controllers/userProfileController"
 import { useColorScheme } from "@/hooks/useColorScheme"
+import { validatePassword, type PasswordValidation } from "@/utils/passwordComplexityChecker"
 import { router } from "expo-router"
 import { useEffect, useState } from "react"
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
@@ -27,6 +26,14 @@ export default function EditProfileScreen() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [passwordValidations, setPasswordValidations] = useState<PasswordValidation>({
+    length: false,
+    upper: false,
+    lower: false,
+    number: false,
+    special: false,
+    isValid: false,
+  })
 
   useEffect(() => {
     // Get initial session
@@ -71,12 +78,17 @@ export default function EditProfileScreen() {
     }
 
     if (trimmedPassword) {
-      if (trimmedPassword.length < 6) {
-        Alert.alert("Error", "Password must be at least 6 characters")
-        return
-      }
       if (trimmedPassword !== trimmedConfirmPassword) {
         Alert.alert("Error", "Passwords do not match")
+        return
+      }
+
+      const validations = validatePassword(trimmedPassword)
+      if (!validations.isValid) {
+        Alert.alert(
+          "Weak Password",
+          "Password must have at least 8 characters, include uppercase, lowercase, number, and special symbol."
+        )
         return
       }
     }
@@ -121,79 +133,107 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: -80 }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.borderColor }]}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <IconSymbol name="chevron.left" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Profile</Text>
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Profile Picture Section */}
-        <View style={styles.avatarSection}>
-          <View style={[styles.avatar, { backgroundColor: colors.cardBackground }]}>
-            <IconSymbol name="person.crop.circle" size={60} color={colors.secondaryText} />
+    <KeyboardAvoidingWrapper>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: -80 }]}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.borderColor }]}>
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <IconSymbol name="chevron.left" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Edit Profile</Text>
           </View>
+          <View style={styles.headerSpacer} />
         </View>
 
-        {/* Form Fields */}
-        <View style={styles.form}>
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Username</Text>
-            <TextInput
-              style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Enter your username"
-              placeholderTextColor={colors.placeholderText}
-              autoCapitalize="none"
-            />
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Profile Picture Section */}
+          <View style={styles.avatarSection}>
+            <View style={[styles.avatar, { backgroundColor: colors.cardBackground }]}>
+              <IconSymbol name="person.crop.circle" size={60} color={colors.secondaryText} />
+            </View>
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
-            <TextInput
-              style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter new password (leave blank to keep current)"
-              placeholderTextColor={colors.placeholderText}
-              secureTextEntry
-            />
-          </View>
-
-          {/* Conditionally render Confirm Password only if password is typed */}
-          {password.length > 0 && (
+          {/* Form Fields */}
+          <View style={styles.form}>
             <View style={styles.fieldGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Username</Text>
               <TextInput
                 style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirm new password"
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Enter your username"
+                placeholderTextColor={colors.placeholderText}
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+              <TextInput
+                style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+                value={password}
+                placeholder="Enter new password (leave blank to keep current)"
                 placeholderTextColor={colors.placeholderText}
                 secureTextEntry
+                onChangeText={(text) => {
+                  setPassword(text)
+                  setPasswordValidations(validatePassword(text))
+                  if (text.length === 0) setConfirmPassword("")
+                }}
               />
+            </View>
+
+            {/* Conditionally render Confirm Password only if password is typed */}
+            {password.length > 0 && (
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
+                <TextInput
+                  style={[styles.input, { borderColor: colors.borderColor, color: colors.text }]}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder="Confirm new password"
+                  placeholderTextColor={colors.placeholderText}
+                  secureTextEntry
+                />
+              </View>
+            )}
+
+          </View>
+
+          {password.length > 0 && (
+            <View style={{ marginTop: 15}}>
+              {[
+                { label: "At least 8 characters", valid: validatePassword(password).length },
+                { label: "At least one uppercase letter", valid: validatePassword(password).upper },
+                { label: "At least one lowercase letter", valid: validatePassword(password).lower },
+                { label: "At least one number", valid: validatePassword(password).number },
+                { label: "At least one special character", valid: validatePassword(password).special },
+              ].map((rule, idx) => (
+                <Text
+                  key={idx}
+                  style={{
+                    color: rule.valid ? "green" : "red",
+                    fontSize: 12,
+                  }}
+                >
+                  • {rule.label}
+                </Text>
+              ))}
             </View>
           )}
 
-        </View>
-
-        {/* Update Button */}
-        <TouchableOpacity
-          style={[styles.updateButton, { backgroundColor: "#000" }]}
-          onPress={handleUpdate}
-          disabled={loading}
-        >
-          <Text style={[styles.updateButtonText, { color: "#fff" }]}>{loading ? "UPDATING..." : "UPDATE"}</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+          {/* Update Button */}
+          <TouchableOpacity
+            style={[styles.updateButton, { backgroundColor: "#000" }]}
+            onPress={handleUpdate}
+            disabled={loading}
+          >
+            <Text style={[styles.updateButtonText, { color: "#fff" }]}>{loading ? "UPDATING..." : "UPDATE"}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    </KeyboardAvoidingWrapper>
   )
 }
 

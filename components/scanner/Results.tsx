@@ -90,9 +90,8 @@ export default function ResultTemplate({
       case "mailto":
         return `Email: ${data.email || "N/A"}\nSubject: ${data.subject || "N/A"}\nBody: ${data.body || "N/A"}`
       case "wifi":
-        return `SSID: ${data.ssid || "N/A"}\nSecurity: ${data.authentication || "N/A"}\nPassword: ${
-          data.password ? "********" : "None"
-        }`
+        return `SSID: ${data.ssid || "N/A"}\nSecurity: ${data.authentication || "N/A"}\nPassword: ${data.password ? "********" : "None"
+          }`
       case "text":
         return data.text
       default:
@@ -140,37 +139,62 @@ export default function ResultTemplate({
         </TouchableOpacity>
       )}
 
-      {canPerformAction && isSafe && (
+      {((canPerformAction && isSafe) || (!isSafe && acknowledged)) && (
         <View style={styles.buttonsRow}>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: config.buttonColor }]}
-            onPress={contentType === "text" ? onCopyText : onPerformAction}
-          >
-            <Text style={styles.buttonText}>
-              {getActionButtonText(contentType)}
-            </Text>
-          </TouchableOpacity>
+          {isSafe && (
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: config.buttonColor }]}
+              onPress={contentType === "text" ? onCopyText : onPerformAction}
+            >
+              <Text style={styles.buttonText}>
+                {getActionButtonText(contentType)}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-            <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
-          </TouchableOpacity>
+          {contentType === "url" && !isSafe && acknowledged && (
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: "#e74c3c" }]}
+              onPress={onOpenSandbox}
+            >
+              <Text style={styles.buttonText}>Open in Sandbox Environment</Text>
+            </TouchableOpacity>
+          )}
+
+          {(isSafe || onReport) && (
+            <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+              <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
 
           {menuVisible && (
             <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
               <TouchableOpacity style={styles.menuOverlay} onPress={closeMenu} activeOpacity={1} />
               <View style={styles.menuDropdown}>
-                <TouchableOpacity
-                  onPress={() => { closeMenu(); onCopyText?.() }}
-                  style={styles.menuItem}
-                >
-                  <Text style={styles.menuItemText}>Copy Content</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => { closeMenu(); onShareLink?.() }}
-                  style={styles.menuItem}
-                >
-                  <Text style={styles.menuItemText}>Share Content</Text>
-                </TouchableOpacity>
+                {isSafe && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => {
+                        closeMenu()
+                        onCopyText?.()
+                      }}
+                      style={styles.menuItem}
+                    >
+                      <Text style={styles.menuItemText}>Copy Content</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        closeMenu()
+                        onShareLink?.()
+                      }}
+                      style={styles.menuItem}
+                    >
+                      <Text style={styles.menuItemText}>Share Content</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
                 {onReport && (
                   <TouchableOpacity
                     onPress={() => { closeMenu(); onReport?.() }}
@@ -185,15 +209,6 @@ export default function ResultTemplate({
             </View>
           )}
         </View>
-      )}
-
-      {contentType === "url" && !isSafe && acknowledged && (
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#e74c3c" }]}
-          onPress={onOpenSandbox}
-        >
-          <Text style={styles.buttonText}>Open in Sandbox Environment</Text>
-        </TouchableOpacity>
       )}
 
       {/* extra spacing when safe + action button shown */}
