@@ -133,8 +133,8 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <KeyboardAvoidingWrapper>
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, paddingTop: -80 }]}>
+    <KeyboardAvoidingWrapper style={{ backgroundColor: colors.background }} keyboardVerticalOffset={50}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background}]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.borderColor }]}>
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -202,7 +202,7 @@ export default function EditProfileScreen() {
           </View>
 
           {password.length > 0 && (
-            <View style={{ marginTop: 15}}>
+            <View style={{ marginTop: 15, marginLeft: 15}}>
               {[
                 { label: "At least 8 characters", valid: validatePassword(password).length },
                 { label: "At least one uppercase letter", valid: validatePassword(password).upper },
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    //paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backButton: {
