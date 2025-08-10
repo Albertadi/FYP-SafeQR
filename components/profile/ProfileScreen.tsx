@@ -1,5 +1,6 @@
 "use client"
 
+import EducationModal from "@/components/profile/education"
 import FAQScreen from "@/components/profile/FAQScreen"
 import ReportHistoryScreen from "@/components/profile/ReportHistoryScreen"
 import { IconSymbol } from "@/components/ui/IconSymbol"
@@ -28,6 +29,7 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
   const [profileError, setProfileError] = useState(false)
   const [showReportHistory, setReportHistory] = useState(false)
   const [faqVisible, setFaqVisible] = useState(false)
+  const [educationVisible, setEducationVisible] = useState(false)
 
   // Fetch user profile from public users table
   useEffect(() => {
@@ -118,6 +120,10 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
 
   const handleFAQ = () => {
     setFaqVisible(true)
+  }
+
+  const handleEducation = () => {
+    setEducationVisible(true);
   }
 
   const handleRetry = () => {
@@ -322,8 +328,18 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
             <Text style={[styles.menuText, { color: colors.text }]}>FAQ</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.secondaryText} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.menuItem, { backgroundColor: colors.background }]}
+            onPress={handleEducation}
+          >
+            <IconSymbol name="info.circle" size={20} color={colors.text} />
+            <Text style={[styles.menuText, { color: colors.text }]}>Educational Tips</Text>
+            <IconSymbol name="chevron.right" size={16} color={colors.secondaryText} />
+          </TouchableOpacity>
         </View>
         <FAQScreen visible={faqVisible} onClose={() => setFaqVisible(false)} />
+        <EducationModal visible={educationVisible} onClose={() => setEducationVisible(false)} />
 
         {/* Logout Button */}
         <TouchableOpacity
