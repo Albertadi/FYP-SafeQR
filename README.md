@@ -1,4 +1,4 @@
-# FYP-25-S2-18 | SafeQR 👋
+# FYP-25-S2-18 | SafeQR 
 
 SafeQR is a React Native + Expo app that scans QR codes and checks them against Google Safe Browsing and an ML classifier hosted on Google Cloud Run, with a JS-free Safe Preview. Accounts & email flows run through Supabase + AWS SES.
 
